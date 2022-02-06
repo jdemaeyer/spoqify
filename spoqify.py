@@ -14,7 +14,7 @@ import click
 import quart
 
 
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 
 
 app = quart.Quart('spoqify')
@@ -26,6 +26,7 @@ app.config['USER_AGENT'] = (
 app.config['SPOTIFY_CLIENT_ID'] = os.environ['SPOTIFY_CLIENT_ID']
 app.config['SPOTIFY_CLIENT_SECRET'] = os.environ['SPOTIFY_CLIENT_SECRET']
 app.config['SPOTIFY_USER_ID'] = os.environ['SPOTIFY_USER_ID']
+app.tasks = {}
 
 api_calls_allowed = asyncio.Event()
 api_calls_allowed.set()
@@ -223,10 +224,51 @@ async def shutdown():
     await app.session.close()
 
 
+def encode_event(data):
+    return f"data: {json.dumps(data)}\r\n\r\n".encode()
+
+
 @app.route('/<playlist_id>')
 async def anonymize(playlist_id):
-    url = await anonymize_playlist(playlist_id)
-    return quart.redirect(url)
+    if playlist_id not in app.tasks:
+        app.logger.debug("Creating task for playlist %s", playlist_id)
+        app.tasks[playlist_id] = asyncio.create_task(
+            anonymize_playlist(playlist_id))
+    else:
+        app.logger.debug("Using existing task for playlist %s", playlist_id)
+    task = app.tasks[playlist_id]
+
+    async def make_events():
+        while True:
+            try:
+                await asyncio.wait_for(asyncio.shield(task), 5)
+            except asyncio.TimeoutError:
+                try:
+                    task_idx = list(app.tasks).index(playlist_id)
+                except ValueError:
+                    task_idx = 0
+                yield encode_event({
+                    'queue_idx': task_idx,
+                    'queue_size': len(app.tasks),
+                })
+            else:
+                if app.tasks.pop(playlist_id, None):
+                    app.logger.debug(
+                        "Finished task for playlist %s: %s",
+                        playlist_id, task.result())
+                break
+        yield encode_event({'playlist_url': task.result()})
+
+    response = await quart.make_response(
+        make_events(),
+        {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Transfer-Encoding': 'chunked',
+        },
+    )
+    response.timeout = None
+    return response
 
 
 if __name__ == '__main__':
