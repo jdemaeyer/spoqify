@@ -5,55 +5,36 @@ import json
 import logging
 import os
 import re
-import sys
 import time
 from contextlib import suppress
-from functools import cache
 from urllib.parse import urlencode
 
 import aiohttp
+import click
+import quart
 
 
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 
-AUTH_FILE_PATH = 'data/auth'
-USER_AGENT = (
+
+app = quart.Quart('spoqify')
+
+app.config['AUTH_FILE_PATH'] = 'data/auth'
+app.config['USER_AGENT'] = (
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, '
     'like Gecko) Chrome/92.0.4515.131 Safari/537.36')
+app.config['SPOTIFY_CLIENT_ID'] = os.environ['SPOTIFY_CLIENT_ID']
+app.config['SPOTIFY_CLIENT_SECRET'] = os.environ['SPOTIFY_CLIENT_SECRET']
+app.config['SPOTIFY_USER_ID'] = os.environ['SPOTIFY_USER_ID']
 
-
-logger = logging.getLogger('spoqify')
 api_calls_allowed = asyncio.Event()
 api_calls_allowed.set()
 
 
-class ConfigError(Exception):
-    pass
-
-
-@cache
-def get_config():
-    config = {
-        'client_id': os.getenv('SPOTIFY_CLIENT_ID'),
-        'client_secret': os.getenv('SPOTIFY_CLIENT_SECRET'),
-        'user_id': os.getenv('SPOTIFY_USER_ID'),
-    }
-    if not all(config.values()):
-        raise ConfigError(
-            "Please set the SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and "
-            "SPOTIFY_USER_ID environment variables")
-    return config
-
-
-@cache
-def session():
-    return aiohttp.ClientSession(raise_for_status=True)
-
-
 async def load_playlist(playlist_id):
-    resp = await session().get(
+    resp = await app.session.get(
         f'https://open.spotify.com/playlist/{playlist_id}',
-        headers={'User-Agent': USER_AGENT})
+        headers={'User-Agent': app.config['USER_AGENT']})
     async with resp:
         return parse_playlist(await resp.text())
 
@@ -80,35 +61,36 @@ def parse_playlist(body):
 
 
 async def get_token(cache={}):
-    config = get_config()
     if not cache:
         with suppress(Exception):
-            with open(AUTH_FILE_PATH) as f:
+            with open(app.config['AUTH_FILE_PATH']) as f:
                 cache.update(json.load(f))
         if not cache:
-            raise ConfigError("Please run `python spoqify.py init` first")
+            raise SystemExit("Please run `python spoqify.py init` first")
     if cache.get('expires', 0) < time.time() - 60:
         if 'code' in cache:
-            logger.debug("Authenticating with code")
+            app.logger.debug("Authenticating with code")
             data = {
                 'grant_type': 'authorization_code',
                 'code': cache.pop('code'),
                 'redirect_uri': 'http://localhost:8808/',
             }
         elif 'refresh_token' in cache:
-            logger.debug("Authenticating with refresh token")
+            app.logger.debug("Authenticating with refresh token")
             data = {
                 'grant_type': 'refresh_token',
                 'refresh_token': cache['refresh_token'],
             }
         else:
-            raise ConfigError(
+            raise SystemExit(
                 "Malconfigured auth data, please run `python spoqify.py init`")
-        resp = await session().post(
+        resp = await app.session.post(
             'https://accounts.spotify.com/api/token',
             data=data,
             auth=aiohttp.helpers.BasicAuth(
-                config['client_id'], config['client_secret']),
+                app.config['SPOTIFY_CLIENT_ID'],
+                app.config['SPOTIFY_CLIENT_SECRET'],
+            ),
         )
         async with resp:
             data = await resp.json()
@@ -116,7 +98,7 @@ async def get_token(cache={}):
         cache['expires'] = time.time() + data['expires_in']
         if 'refresh_token' in data:
             cache['refresh_token'] = data['refresh_token']
-        with open(AUTH_FILE_PATH, 'w') as f:
+        with open(app.config['AUTH_FILE_PATH'], 'w') as f:
             json.dump(cache, f)
     return cache['token']
 
@@ -124,14 +106,14 @@ async def get_token(cache={}):
 async def call_api(endpoint, data=None):
     while True:
         await api_calls_allowed.wait()
-        logger.debug("Requesting %s", endpoint)
+        app.logger.debug("Requesting %s", endpoint)
         try:
             return (await _call_api(endpoint, data=data))
         except aiohttp.ClientResponseError as e:
             if e.status == 429:
                 api_calls_allowed.clear()
                 delay = float(e.headers.get('Retry-After', 5))
-                logger.warning("Got 429, will retry in %s seconds", delay)
+                app.logger.warning("Got 429, will retry in %s seconds", delay)
                 await asyncio.sleep(delay)
                 api_calls_allowed.set()
             else:
@@ -141,7 +123,7 @@ async def call_api(endpoint, data=None):
 
 
 async def _call_api(endpoint, data=None):
-    resp = await session().request(
+    resp = await app.session.request(
         method='GET' if data is None else 'POST',
         url=f'https://api.spotify.com/v1/{endpoint}',
         json=data,
@@ -152,10 +134,8 @@ async def _call_api(endpoint, data=None):
 
 
 async def create_playlist(title, description, tracks):
-    config = get_config()
-    user_id = config['user_id']
     data = await call_api(
-        f'users/{user_id}/playlists',
+        f"users/{app.config['SPOTIFY_USER_ID']}/playlists",
         data={
             'name': title,
             'description': description,
@@ -185,10 +165,16 @@ async def anonymize_playlist(playlist_id):
     return url
 
 
+@click.option(
+    '--manual',
+    help="Do not start a temporary webserver (use this if you are running "
+         "this command on a different machine than your web browser)",
+    is_flag=True,
+    default=False)
+@app.cli.command('init', help="Perform initial Spotify user login")
 def init_token(manual=False):
-    config = get_config()
     params = {
-        'client_id': config['client_id'],
+        'client_id': app.config['SPOTIFY_CLIENT_ID'],
         'response_type': 'code',
         'redirect_uri': 'http://localhost:8808/',
         'scope': 'playlist-modify-public playlist-modify-private',
@@ -209,31 +195,30 @@ def init_token(manual=False):
                 self.wfile.write(b'All done :)')
         httpd = http.server.HTTPServer(('', 8808), RequestHandler)
         httpd.handle_request()
-    os.makedirs(os.path.dirname(AUTH_FILE_PATH), exist_ok=True)
-    with open(AUTH_FILE_PATH, 'w') as f:
+    os.makedirs(os.path.dirname(app.config['AUTH_FILE_PATH'], exist_ok=True))
+    with open(app.config['AUTH_FILE_PATH'], 'w') as f:
         json.dump(data, f)
 
 
-def configure_logging():
-    logging.basicConfig(
-        format='%(asctime)s %(name)s %(levelname)s  %(message)s',
-        level=logging.DEBUG,
-    )
+@app.before_serving
+async def startup():
+    app.session = aiohttp.ClientSession(raise_for_status=True)
+    app.logger.setLevel(logging.DEBUG)
     # Disable some third-party noise
     logging.getLogger('asyncio').setLevel(logging.WARNING)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 
-async def main():
-    if len(sys.argv) > 1 and sys.argv[1] == 'init':
-        manual = len(sys.argv) > 2 and sys.argv[2] == '--manual'
-        init_token(manual=manual)
-        print(await call_api('me'))
-    # https://open.spotify.com/playlist/37i9dQZF1E8GPlttUvOQfg
-    print(await anonymize_playlist('37i9dQZF1E8GPlttUvOQfg'))
-    await session().close()
+@app.after_serving
+async def shutdown():
+    await app.session.close()
+
+
+@app.route('/<playlist_id>')
+async def anonymize(playlist_id):
+    url = await anonymize_playlist(playlist_id)
+    return quart.redirect(url)
 
 
 if __name__ == '__main__':
-    configure_logging()
-    asyncio.run(main())
+    app.run()

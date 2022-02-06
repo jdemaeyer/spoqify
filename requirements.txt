@@ -4,6 +4,8 @@
 #
 #    pip-compile
 #
+aiofiles==0.8.0
+    # via quart
 aiohttp==3.8.1
     # via spoqify (setup.py)
 aiosignal==1.2.0
@@ -12,17 +14,51 @@ async-timeout==4.0.2
     # via aiohttp
 attrs==21.4.0
     # via aiohttp
+blinker==1.4
+    # via quart
 charset-normalizer==2.0.11
     # via aiohttp
+click==8.0.3
+    # via quart
 frozenlist==1.3.0
     # via
     #   aiohttp
     #   aiosignal
+h11==0.13.0
+    # via
+    #   hypercorn
+    #   wsproto
+h2==4.1.0
+    # via hypercorn
+hpack==4.0.0
+    # via h2
+hypercorn==0.13.2
+    # via quart
+hyperframe==6.0.1
+    # via h2
 idna==3.3
     # via yarl
+itsdangerous==2.0.1
+    # via quart
+jinja2==3.0.3
+    # via quart
+markupsafe==2.0.1
+    # via jinja2
 multidict==6.0.2
     # via
     #   aiohttp
     #   yarl
+priority==2.0.0
+    # via hypercorn
+quart==0.16.3
+    # via spoqify (setup.py)
+toml==0.10.2
+    # via
+    #   hypercorn
+    #   quart
+werkzeug==2.0.2
+    # via quart
+wsproto==1.0.0
+    # via hypercorn
 yarl==1.7.2
     # via aiohttp
