@@ -4,13 +4,25 @@
 #
 #    pip-compile
 #
-certifi==2021.10.8
-    # via requests
-charset-normalizer==2.0.11
-    # via requests
-idna==3.3
-    # via requests
-requests==2.27.1
+aiohttp==3.8.1
     # via spoqify (setup.py)
-urllib3==1.26.8
-    # via requests
+aiosignal==1.2.0
+    # via aiohttp
+async-timeout==4.0.2
+    # via aiohttp
+attrs==21.4.0
+    # via aiohttp
+charset-normalizer==2.0.11
+    # via aiohttp
+frozenlist==1.3.0
+    # via
+    #   aiohttp
+    #   aiosignal
+idna==3.3
+    # via yarl
+multidict==6.0.2
+    # via
+    #   aiohttp
+    #   yarl
+yarl==1.7.2
+    # via aiohttp

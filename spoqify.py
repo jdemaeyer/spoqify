@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import http.server
 import json
@@ -10,10 +11,10 @@ from contextlib import suppress
 from functools import cache
 from urllib.parse import urlencode
 
-import requests
+import aiohttp
 
 
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 
 AUTH_FILE_PATH = 'data/auth'
 USER_AGENT = (
@@ -42,12 +43,17 @@ def get_config():
     return config
 
 
-def load_playlist(playlist_id):
-    resp = requests.get(
+@cache
+def session():
+    return aiohttp.ClientSession(raise_for_status=True)
+
+
+async def load_playlist(playlist_id):
+    resp = await session().get(
         f'https://open.spotify.com/playlist/{playlist_id}',
         headers={'User-Agent': USER_AGENT})
-    resp.raise_for_status()
-    return parse_playlist(resp.text)
+    async with resp:
+        return parse_playlist(await resp.text())
 
 
 def parse_playlist(body):
@@ -71,7 +77,7 @@ def parse_playlist(body):
     }
 
 
-def get_token(cache={}):
+async def get_token(cache={}):
     config = get_config()
     if not cache:
         with suppress(Exception):
@@ -96,13 +102,14 @@ def get_token(cache={}):
         else:
             raise ConfigError(
                 "Malconfigured auth data, please run `python spoqify.py init`")
-        resp = requests.post(
+        resp = await session().post(
             'https://accounts.spotify.com/api/token',
             data=data,
-            auth=(config['client_id'], config['client_secret']),
+            auth=aiohttp.helpers.BasicAuth(
+                config['client_id'], config['client_secret']),
         )
-        resp.raise_for_status()
-        data = resp.json()
+        async with resp:
+            data = await resp.json()
         cache['token'] = data['access_token']
         cache['expires'] = time.time() + data['expires_in']
         if 'refresh_token' in data:
@@ -112,21 +119,21 @@ def get_token(cache={}):
     return cache['token']
 
 
-def call_api(endpoint, data=None):
-    resp = requests.request(
+async def call_api(endpoint, data=None):
+    resp = await session().request(
         method='GET' if data is None else 'POST',
         url=f'https://api.spotify.com/v1/{endpoint}',
         json=data,
-        headers={'Authorization': f'Bearer {get_token()}'.encode()},
+        headers={'Authorization': f'Bearer {await get_token()}'},
     )
-    resp.raise_for_status()
-    return resp.json()
+    async with resp:
+        return (await resp.json())
 
 
-def create_playlist(title, description, tracks):
+async def create_playlist(title, description, tracks):
     config = get_config()
     user_id = config['user_id']
-    data = call_api(
+    data = await call_api(
         f'users/{user_id}/playlists',
         data={
             'name': title,
@@ -134,26 +141,27 @@ def create_playlist(title, description, tracks):
         },
     )
     playlist_id = data['id']
-    call_api(
+    await call_api(
         f'playlists/{playlist_id}/tracks',
         data={'uris': [f'spotify:track:{track_id}' for track_id in tracks]},
     )
     return data['external_urls']['spotify']
 
 
-def anonymize_playlist(playlist_id):
-    data = load_playlist(playlist_id)
+async def anonymize_playlist(playlist_id):
+    data = await load_playlist(playlist_id)
     description = (
         "Anonymized via spoqify.com on "
         f"{datetime.date.today().strftime('%d %B %Y').lstrip('0')}. | "
         f"Original playlist: {data['url']} | "
         "Freshly anonymized playlist: "
         f"{data['url'].replace('spotify.com', 'spoqify.com')}")
-    return create_playlist(
+    url = await create_playlist(
         data['title'],
         description,
         data['tracks'],
     )
+    return url
 
 
 def init_token(manual=False):
@@ -191,14 +199,20 @@ def configure_logging():
         level=logging.DEBUG,
     )
     # Disable some third-party noise
+    logging.getLogger('asyncio').setLevel(logging.WARNING)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+
+async def main():
+    if len(sys.argv) > 1 and sys.argv[1] == 'init':
+        manual = len(sys.argv) > 2 and sys.argv[2] == '--manual'
+        init_token(manual=manual)
+        print(await call_api('me'))
+    # https://open.spotify.com/playlist/37i9dQZF1E8GPlttUvOQfg
+    print(await anonymize_playlist('37i9dQZF1E8GPlttUvOQfg'))
+    await session().close()
 
 
 if __name__ == '__main__':
     configure_logging()
-    if len(sys.argv) > 1 and sys.argv[1] == 'init':
-        manual = len(sys.argv) > 2 and sys.argv[2] == '--manual'
-        init_token(manual=manual)
-        print(call_api('me'))
-    # https://open.spotify.com/playlist/37i9dQZF1E8GPlttUvOQfg
-    print(anonymize_playlist('37i9dQZF1DX39Q9ceUSQK1'))
+    asyncio.run(main())
