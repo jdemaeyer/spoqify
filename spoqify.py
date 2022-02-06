@@ -23,6 +23,8 @@ USER_AGENT = (
 
 
 logger = logging.getLogger(__name__)
+api_calls_allowed = asyncio.Event()
+api_calls_allowed.set()
 
 
 class ConfigError(Exception):
@@ -120,6 +122,25 @@ async def get_token(cache={}):
 
 
 async def call_api(endpoint, data=None):
+    while True:
+        await api_calls_allowed.wait()
+        logger.debug("Requesting %s", endpoint)
+        try:
+            return (await _call_api(endpoint, data=data))
+        except aiohttp.ClientResponseError as e:
+            if e.status == 429:
+                api_calls_allowed.clear()
+                delay = float(e.headers.get('Retry-After', 5))
+                logger.warning("Got 429, will retry in %s seconds", delay)
+                await asyncio.sleep(delay)
+                api_calls_allowed.set()
+            else:
+                raise
+        else:
+            break
+
+
+async def _call_api(endpoint, data=None):
     resp = await session().request(
         method='GET' if data is None else 'POST',
         url=f'https://api.spotify.com/v1/{endpoint}',
