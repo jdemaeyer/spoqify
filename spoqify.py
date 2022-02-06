@@ -22,7 +22,7 @@ USER_AGENT = (
     'like Gecko) Chrome/92.0.4515.131 Safari/537.36')
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('spoqify')
 api_calls_allowed = asyncio.Event()
 api_calls_allowed.set()
 
