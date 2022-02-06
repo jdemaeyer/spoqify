@@ -4,6 +4,7 @@
 .tox
 .venv
 build
+data
 dist
 *.egg-info
 *.pyc
