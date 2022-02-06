@@ -29,6 +29,7 @@ app.config['SPOTIFY_USER_ID'] = os.environ['SPOTIFY_USER_ID']
 
 api_calls_allowed = asyncio.Event()
 api_calls_allowed.set()
+api_worker_limit = asyncio.Semaphore(4)
 
 
 async def load_playlist(playlist_id):
@@ -150,19 +151,19 @@ async def create_playlist(title, description, tracks):
 
 
 async def anonymize_playlist(playlist_id):
-    data = await load_playlist(playlist_id)
-    description = (
-        "Anonymized via spoqify.com on "
-        f"{datetime.date.today().strftime('%d %B %Y').lstrip('0')}. | "
-        f"Original playlist: {data['url']} | "
-        "Freshly anonymized playlist: "
-        f"{data['url'].replace('spotify.com', 'spoqify.com')}")
-    url = await create_playlist(
-        data['title'],
-        description,
-        data['tracks'],
-    )
-    return url
+    async with api_worker_limit:
+        data = await load_playlist(playlist_id)
+        date_str = datetime.date.today().strftime('%d %B %Y').lstrip('0')
+        reanon_url = data['url'].replace('spotify.com', 'spoqify.com')
+        description = (
+            f"Anonymized on {date_str} via spoqify.com. | Original playlist: "
+            f"{data['url']} | Freshly anonymized playlist: {reanon_url}")
+        url = await create_playlist(
+            data['title'],
+            description,
+            data['tracks'],
+        )
+        return url
 
 
 @click.option(
