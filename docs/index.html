@@ -20,6 +20,11 @@
         }
       }
 
+      p, li {
+        text-align: justify;
+        hyphens: auto;
+      }
+
       code {
         padding: .11rem .25rem;
       }
@@ -34,10 +39,19 @@
   <body>
     <main class="container">
       <section id="title">
-        <hgroup>
-          <h1>Spoqify</h1>
-          <h2>make Song Radio fun again!</h2>
-        </hgroup>
+        <div class="flex-grid">
+          <div style="flex-grow: 1">
+            <hgroup>
+              <h1>Spoqify</h1>
+              <h2>make Song Radio fun again!</h2>
+            </hgroup>
+          </div>
+          <div style="text-align: right">
+            <h1 style="margin: 0">
+              <img src="icon.png" style="height: 2.5em">
+            </h1>
+          </div>
+        </div>
       </section>
       <section id="app">
         <h4>Ever find yourself in a musical Groundhog Day?</h4>
@@ -47,7 +61,7 @@
             href="https://engineering.atspotify.com/2021/12/02/how-spotify-uses-ml-to-create-the-future-of-personalization/">
             heavily personalizes
           </a>
-          auto-generated playlists like Song Radios based on the music you've
+          auto-generated playlists like Song Radio based on the music you've
           listened to in the past. But sometimes you want to listen to Song
           Radio precisely to hear some <em>fresh songs</em> outside of your
           habitual listening realm!
@@ -79,10 +93,10 @@
         </form>
       </section>
       <section id="how">
-        <h4>How it works</h4>
+        <h4>How does it work?</h4>
         <p>
-          Spoqify was a small weekend project and is hence very simple. Once
-          you submit a request, Spoqify will:
+          Very simply (this was a fun weekend project). Once you submit a
+          request, Spoqify will:
           <ol>
             <li>
               Open the playlist (on our server) without sending any session
