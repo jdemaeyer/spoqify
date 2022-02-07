@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@picocss/pico@1.4.4/css/pico.min.css">
+    <title>Spoqify - make Song Radio fun again!</title>
+    <style>
+      code {
+        padding: .11rem .25rem;
+      }
+
+      .flex-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <section id="title">
+        <hgroup>
+          <h1>Spoqify</h1>
+          <h2>make Song Radio fun again!</h2>
+        </hgroup>
+      </section>
+      <section id="app">
+        <h4>Ever find yourself in a musical Groundhog Day?</h4>
+        <p>
+          Spotify
+          <a
+            href="https://engineering.atspotify.com/2021/12/02/how-spotify-uses-ml-to-create-the-future-of-personalization/">
+            heavily personalizes
+          </a>
+          auto-generated playlists like Song Radios based on the music you've
+          listened to in the past. But sometimes you want to listen to Song
+          Radio precisely to hear some <em>fresh songs</em> outside of your
+          habitual listening realm!
+        </p>
+        <p>
+          <strong>Spoqify</strong> is a dead-simple service that allows you to
+          access Spotify playlists like an anonymous user. When looking at a
+          Spotify playlist, just replace the <code>t</code> in
+          <code>spotify.com</code> with a <code>q</code> and you will be
+          forwarded to an anonymized version of that playlist.
+        </p>
+        <p>
+          Alternatively, paste a playlist URL into this form:
+        </p>
+        <form action="/anonymize/">
+          <div class="flex-grid">
+            <div style="min-width: 400px; flex-grow: 4">
+              <input
+                type="text"
+                id="playlist"
+                name="playlist"
+                placeholder="Paste Spotify playlist URL (or ID) here"
+                required>
+            </div>
+            <div style="flex-grow: 1">
+              <button type="submit" class="secondary">Anonymize!</button>
+            </div>
+          </div>
+        </form>
+      </section>
+      <section id="how">
+        <h4>How it works</h4>
+        <p>
+          Spoqify was a small weekend project and is hence very simple. Once
+          you submit a request, Spoqify will:
+          <ol>
+            <li>
+              Open the playlist (on our server) without sending any session
+              cookies (similar to the <em>Private Window</em> feature of your
+              web browser)
+            </li>
+            <li>
+              Extract the Spotify IDs of all the songs contained in that
+              playlist
+            </li>
+            <li>
+              Use <a href="https://developer.spotify.com/documentation/">
+              Spotify's Web API</a> to create a new playlist that contains
+              exactly the same songs
+            </li>
+            <li>
+              Forward you to that newly created playlist
+            </li>
+          </ol>
+        </p>
+        <p>
+          Spoqify is <a href="https://choosealicense.com/licenses/mit/">
+          MIT-licensed</a> and its <a href="https://github.com/jdemaeyer/spoqify">
+          source code is available on GitHub</a>.
+        </p>
+      </section>
+      <section id="make-spoqify-obsolete">
+        <h4>Using Spoqify a lot?</h4>
+        <p>
+          You can help make it obsolete! Spotify's community outreach includes
+          an <a href="https://community.spotify.com/t5/Ideas/ct-p/newideas">
+          Ideas Exchange</a>, and requests to disable personalization pop up
+          there <a href="https://community.spotify.com/t5/Closed-Ideas/All-Platforms-Radio-Anonymous-Listening-Unbiased-Song-Artist/idi-p/4969244">
+          every now and then</a>. Using Spoqify could become unnecessary if
+          enough users signal interest in a setting to disable personalization.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
