@@ -32,9 +32,9 @@ app.config['AUTH_FILE_PATH'] = 'data/auth'
 app.config['USER_AGENT'] = (
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, '
     'like Gecko) Chrome/92.0.4515.131 Safari/537.36')
-app.config['SPOTIFY_CLIENT_ID'] = os.environ['SPOTIFY_CLIENT_ID']
-app.config['SPOTIFY_CLIENT_SECRET'] = os.environ['SPOTIFY_CLIENT_SECRET']
-app.config['SPOTIFY_USER_ID'] = os.environ['SPOTIFY_USER_ID']
+app.config['SPOTIFY_CLIENT_ID'] = os.getenv('SPOTIFY_CLIENT_ID')
+app.config['SPOTIFY_CLIENT_SECRET'] = os.getenv('SPOTIFY_CLIENT_SECRET')
+app.config['SPOTIFY_USER_ID'] = os.getenv('SPOTIFY_USER_ID')
 app.tasks = {}
 
 api_calls_allowed = asyncio.Event()
