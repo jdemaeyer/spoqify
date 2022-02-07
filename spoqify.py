@@ -217,7 +217,7 @@ def init_token(manual=False):
                 self.wfile.write(b'All done :)')
         httpd = http.server.HTTPServer(('', 8808), RequestHandler)
         httpd.handle_request()
-    os.makedirs(os.path.dirname(app.config['AUTH_FILE_PATH'], exist_ok=True))
+    os.makedirs(os.path.dirname(app.config['AUTH_FILE_PATH']), exist_ok=True)
     with open(app.config['AUTH_FILE_PATH'], 'w') as f:
         json.dump(data, f)
 
