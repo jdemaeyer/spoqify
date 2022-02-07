@@ -17,6 +17,15 @@ import quart
 __version__ = '0.0.5'
 
 
+if __name__ == '__main__':
+    with suppress(FileNotFoundError):
+        with open('.env') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    os.environ.setdefault(*line.split('=', 1))
+
+
 app = quart.Quart('spoqify')
 
 app.config['AUTH_FILE_PATH'] = 'data/auth'
