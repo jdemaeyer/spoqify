@@ -243,7 +243,7 @@ def encode_event(event, data):
 @app.route('/playlist/<playlist_id>')
 async def playlist(playlist_id):
     return quart.redirect(
-        'https://spoqify.com/anonymize/?playlist={playlist_id}')
+        f'https://spoqify.com/anonymize/?playlist={playlist_id}')
 
 
 def _get_task(playlist_id):
