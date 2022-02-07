@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@picocss/pico@1.4.4/css/pico.min.css">
+    <title>Spoqify - anonymizing your playlist...</title>
+    <style>
+      .is-hidden {
+        display: none;
+      }
+
+      .slide-in {
+        animation: slide-in 0.5s forwards;
+      }
+
+      .slide-out {
+        animation: slide-out 0.5s forwards;
+      }
+
+      @keyframes slide-in {
+        from {
+          opacity: 0;
+          transform: translateX(-50%);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0%);
+        }
+      }
+
+      @keyframes slide-out {
+        from {
+          opacity: 1;
+          transform: translateX(0%);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(50%);
+        }
+      }
+    </style>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        const params = new Proxy(new URLSearchParams(window.location.search), {
+          get: (searchParams, prop) => searchParams.get(prop),
+        });
+        if (!params.playlist) {
+          window.location.replace('https://spoqify.com/');
+        } else {
+          const playlistId = params.playlist.split('/').at(-1).split(':').at(-1);
+          const sse = new EventSource(`https://open.spoqify.com/anonymize/${playlistId}`);
+          sse.addEventListener("queued", function(e) {
+            document.getElementById("queue-info").classList.remove("is-hidden");
+            document.getElementById("queue-pos").innerHTML = e.data;
+          });
+          sse.addEventListener("done", function(e) {
+            sse.close();
+            window.location.replace(e.data);
+          });
+          sse.addEventListener("error", function(e) {
+            sse.close();
+            if (e.data)
+              document.getElementById("error-msg").innerHTML = e.data;
+            else if (!playlistId.match(/^[A-Za-z0-9]+$/))
+              document.getElementById("error-msg").innerHTML = "Invalid playlist ID.";
+            document.getElementById("error").setAttribute("open", true);
+          });
+        }
+
+        // Couldn't resist :)
+
+        function shuffle(array) {
+          for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+          }
+          return array;
+        }
+        const flavorStrings = shuffle([
+          "Growing mustache...",
+          "Cutting holes into newspaper...",
+          "Googling where to buy fake ID...",
+          "Turning on suspenseful music...",
+          "Following the white rabbit...",
+          "Clearing traces...",
+          "Asking mom to find hoodie sweater...",
+          "Stacking three kids in a coat...",
+          "Accidentally shadowing stranger...",
+        ]);
+        var flavorIdx = -1;
+        const flavorText = document.getElementById("flavor-text");
+        function nextFlavor() {
+          flavorIdx = (flavorIdx + 1) % flavorStrings.length;
+          flavorText.innerHTML = flavorStrings[flavorIdx];
+          flavorText.classList.remove('slide-out');
+          flavorText.classList.add('slide-in');
+          window.setTimeout(function () {
+            flavorText.classList.remove('slide-in');
+            flavorText.classList.add('slide-out');
+          }, 2500);
+        }
+        nextFlavor();
+        window.setInterval(nextFlavor, 3000);
+      });
+    </script>
+  </head>
+  <body>
+    <main class="container" style="text-align: center">
+      <section id="title">
+        <h1>Anonymizing your playlist...</h1>
+      </section>
+      <section id="progress" aria-busy="true">
+        <p id="queue-info" style="margin-top: 20px" class="is-hidden">
+          <mark>Looks like Spoqify is quite busy right now. There are
+          <strong id="queue-pos">?</strong> requests before yours.</mark>
+        </p>
+      </section>
+      <section id="flavor" style="overflow: hidden">
+        <p id="flavor-text">
+          Putting on fake moustache...
+        </p>
+      </section>
+      <dialog id="error">
+        <article>
+          <header style="background-color: #f08080">
+            <h3 style="margin-bottom: 0">Oh no :(</h3>
+          </header>
+          <p>
+            There was an error while trying to anonymize your playlist:
+          </p>
+          <p>
+            <strong id="error-msg">
+              Unexpected error. Please try again later.
+            </strong>
+          </p>
+        </article>
+      </dialog>
+    </main>
+  </body>
+</html>

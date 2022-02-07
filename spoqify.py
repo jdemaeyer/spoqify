@@ -14,7 +14,7 @@ import click
 import quart
 
 
-__version__ = '0.0.5'
+__version__ = '0.0.6'
 
 
 if __name__ == '__main__':
@@ -48,7 +48,10 @@ async def load_playlist(playlist_id):
         f'https://open.spotify.com/playlist/{playlist_id}',
         headers={'User-Agent': app.config['USER_AGENT']})
     async with resp:
-        return parse_playlist(await resp.text())
+        try:
+            return parse_playlist(await resp.text())
+        except AttributeError:
+            raise ValueError("Unable to find playlist.")
 
 
 def parse_playlist(body):
@@ -233,8 +236,14 @@ async def shutdown():
     await app.session.close()
 
 
-def encode_event(data):
-    return f"data: {json.dumps(data)}\r\n\r\n".encode()
+def encode_event(event, data):
+    return f"event: {event}\ndata: {data}\r\n\r\n".encode()
+
+
+@app.route('/playlist/<playlist_id>')
+async def playlist(playlist_id):
+    return quart.redirect(
+        'https://spoqify.com/anonymize/?playlist={playlist_id}')
 
 
 def _get_task(playlist_id):
@@ -261,28 +270,34 @@ async def anonymize(playlist_id):
 
     async def make_events():
         while True:
+            if len(app.tasks) >= 5:
+                task_idx = len(app.tasks) - 1
+                yield encode_event('queued', task_idx)
             try:
-                await asyncio.wait_for(asyncio.shield(task), 5)
+                url = await asyncio.wait_for(asyncio.shield(task), 5)
             except asyncio.TimeoutError:
                 try:
                     task_idx = list(app.tasks).index(playlist_id)
                 except ValueError:
                     task_idx = 0
-                yield encode_event({
-                    'queue_idx': task_idx,
-                    'queue_size': len(app.tasks),
-                })
-            else:
-                if app.tasks.pop(playlist_id, None):
-                    app.logger.debug(
-                        "Finished task for playlist %s: %s",
-                        playlist_id, task.result())
+                yield encode_event('queued', task_idx)
+            except Exception as e:
+                app.logger.warning(
+                    "Request for playlist %s resulted in error: %s",
+                    playlist_id, e,
+                    exc_info=True,
+                )
+                yield encode_event('error', str(e))
                 break
-        yield encode_event({'playlist_url': task.result()})
+            else:
+                app.logger.info("Anonymized playlist %s: %s", playlist_id, url)
+                yield encode_event('done', url)
+                break
 
     response = await quart.make_response(
         make_events(),
         {
+            'Access-Control-Allow-Origin': 'https://spoqify.com',
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             'Transfer-Encoding': 'chunked',
