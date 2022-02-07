@@ -18,4 +18,4 @@ COPY README.md .
 
 RUN pip install .
 
-ENTRYPOINT ["uvicorn", "spoqify:app"]
+ENTRYPOINT ["uvicorn", "spoqify:app", "--host", "0.0.0.0", "--port", "5000"]
