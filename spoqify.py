@@ -237,15 +237,27 @@ def encode_event(data):
     return f"data: {json.dumps(data)}\r\n\r\n".encode()
 
 
-@app.route('/<playlist_id>')
-async def anonymize(playlist_id):
+def _get_task(playlist_id):
     if playlist_id not in app.tasks:
         app.logger.debug("Creating task for playlist %s", playlist_id)
         app.tasks[playlist_id] = asyncio.create_task(
             anonymize_playlist(playlist_id))
+
+        def _remove_task(task):
+            app.tasks.pop(playlist_id, None)
+            app.logger.debug("Finished task for playlist %s", playlist_id)
+
+        app.tasks[playlist_id].add_done_callback(_remove_task)
     else:
         app.logger.debug("Using existing task for playlist %s", playlist_id)
-    task = app.tasks[playlist_id]
+    return app.tasks[playlist_id]
+
+
+@app.route('/anonymize/<playlist_id>')
+async def anonymize(playlist_id):
+    if not re.match(r'[a-zA-Z0-9]+$', playlist_id):
+        return quart.abort(400, "Invalid playlist ID")
+    task = _get_task(playlist_id)
 
     async def make_events():
         while True:
