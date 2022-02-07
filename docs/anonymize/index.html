@@ -51,7 +51,8 @@
         if (!params.playlist) {
           window.location.replace('https://spoqify.com/');
         } else {
-          const playlistId = params.playlist.split('/').at(-1).split(':').at(-1);
+          const playlistId =
+            params.playlist.split('?')[0].split('/').at(-1).split(':').at(-1);
           const sse = new EventSource(`https://open.spoqify.com/anonymize/${playlistId}`);
           sse.addEventListener("queued", function(e) {
             document.getElementById("queue-info").classList.remove("is-hidden");
