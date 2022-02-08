@@ -6,6 +6,8 @@
 #
 asgiref==3.5.0
     # via uvicorn
+certifi==2021.10.8
+    # via sentry-sdk
 click==8.0.3
     # via uvicorn
 h11==0.13.0
@@ -16,6 +18,10 @@ python-dotenv==0.19.2
     # via uvicorn
 pyyaml==6.0
     # via uvicorn
+sentry-sdk==1.5.4
+    # via -r requirements-deploy.in
+urllib3==1.26.8
+    # via sentry-sdk
 uvicorn[standard]==0.17.4
     # via -r requirements-deploy.in
 uvloop==0.16.0

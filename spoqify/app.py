@@ -5,6 +5,16 @@ import aiohttp
 import quart
 
 
+if os.getenv('SENTRY_DSN'):
+    import sentry_sdk
+    from sentry_sdk.integrations.quart import QuartIntegration
+    sentry_sdk.init(
+       dsn=os.getenv('SENTRY_DSN'),
+       traces_sample_rate=1.,
+       integrations=[QuartIntegration()]
+    )
+
+
 app = quart.Quart('spoqify')
 
 app.config['AUTH_FILE_PATH'] = 'data/auth'
