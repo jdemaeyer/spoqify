@@ -8,6 +8,9 @@ import aiohttp
 from spoqify.app import app
 
 
+INIT_CMD = 'QUART_APP=spoqify.app:app python -m quart init'
+
+
 api_calls_allowed = asyncio.Event()
 api_calls_allowed.set()
 
@@ -18,7 +21,7 @@ async def get_token(cache={}):
             with open(app.config['AUTH_FILE_PATH']) as f:
                 cache.update(json.load(f))
         if not cache:
-            raise SystemExit("Please run `python spoqify.py init` first")
+            raise SystemExit(f"Please run `{INIT_CMD}` first")
     if cache.get('expires', 0) < time.time() - 60:
         if 'code' in cache:
             app.logger.debug("Authenticating with code")
@@ -35,7 +38,7 @@ async def get_token(cache={}):
             }
         else:
             raise SystemExit(
-                "Malconfigured auth data, please run `python spoqify.py init`")
+                f"Malconfigured auth data, please run `{INIT_CMD}`")
         resp = await app.session.post(
             'https://accounts.spotify.com/api/token',
             data=data,
