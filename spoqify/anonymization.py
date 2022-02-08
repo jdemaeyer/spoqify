@@ -6,19 +6,19 @@ from spoqify.app import app
 from spoqify.spotify import call_api
 
 
-async def load_playlist(playlist_id):
-    app.logger.debug("Loading tracks for playlist %s", playlist_id)
+async def load_web_playlist(playlist_id):
+    app.logger.debug("Loading web tracks for playlist %s", playlist_id)
     resp = await app.session.get(
         f'https://open.spotify.com/playlist/{playlist_id}',
         headers={'User-Agent': app.config['USER_AGENT']})
     async with resp:
         try:
-            return parse_playlist(await resp.text())
+            return parse_web_playlist(await resp.text())
         except AttributeError:
             raise ValueError("Unable to find playlist.")
 
 
-def parse_playlist(body):
+def parse_web_playlist(body):
     url = re.search(
         '<meta property="og:url" content="(.*?)" ?/>', body).group(1)
     title = html.unescape(re.search(
@@ -36,6 +36,17 @@ def parse_playlist(body):
         'title': title,
         'description': description,
         'tracks': tracks,
+    }
+
+
+async def load_api_playlist(playlist_id):
+    app.logger.debug("Loading API tracks for playlist %s", playlist_id)
+    data = await call_api(f'playlists/{playlist_id}', use_client_token=True)
+    return {
+        'url': data['external_urls']['spotify'],
+        'title': data['name'],
+        'description': data['description'],
+        'tracks': [t['track']['id'] for t in data['tracks']['items']],
     }
 
 
@@ -60,7 +71,7 @@ async def create_playlist(title, description, tracks):
 
 
 async def anonymize_playlist(playlist_id):
-    data = await load_playlist(playlist_id)
+    data = await load_web_playlist(playlist_id)
     app.logger.debug(
         "Found %d tracks for playlist %s",
         len(data['tracks']), playlist_id)
