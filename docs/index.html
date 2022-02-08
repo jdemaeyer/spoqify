@@ -34,6 +34,36 @@
         flex-wrap: wrap;
         gap: 0 10px;
       }
+
+      .gh-button {
+        display: inline-block;
+        width: 140px;
+        border: 1px solid;
+        border-color: rgba(27,31,35,.15);
+        border-radius: 6px;
+        box-shadow: 0 1px 0 rgba(27,31,35,.04),inset 0 1px 0 rgba(255,255,255,.25);
+        padding: 5px 16px;
+        background-color: #fafbfc;
+        line-height: 20px;
+        font-size: 14px;
+        text-align: center;
+        cursor: pointer;
+        color: #24292e;
+        transition: background-color .2s cubic-bezier(0.3, 0, 0.5, 1);
+        margin-right: 5px;
+      }
+
+      .gh-button > img {
+        height: 16px;
+        margin-right: 5px;
+        margin-top: -2px;
+      }
+
+      .gh-button:hover {
+        background-color: #f3f4f6;
+        transition-duration: .1s;
+        text-decoration: none;
+      }
     </style>
   </head>
   <body>
@@ -45,6 +75,14 @@
               <h1>Spoqify</h1>
               <h2>make Song Radio fun again!</h2>
             </hgroup>
+            <a href="https://github.com/jdemaeyer/spoqify" class="gh-button">
+              <img alt="GitHub logo" src="img/github.svg">
+              View source
+            </a>
+            <a href="https://github.com/sponsors/jdemaeyer" class="gh-button">
+              <img alt="Heart" src="img/heart.svg">
+              Sponsor
+            </a>
           </div>
           <div style="text-align: right">
             <h1 style="margin: 0">
