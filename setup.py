@@ -19,7 +19,7 @@ setup(
         'Source': 'https://github.com/jdemaeyer/spoqify/',
         'Tracker': 'https://github.com/jdemaeyer/spoqify/issues/',
     },
-    py_modules=['spoqify'],
+    packages=['spoqify'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
