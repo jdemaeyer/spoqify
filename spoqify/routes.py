@@ -55,7 +55,7 @@ async def anonymize(playlist_id):
                     task_idx = 0
                 yield encode_event('queued', task_idx)
             except Exception as e:
-                app.logger.warning(
+                app.logger.error(
                     "Request for playlist %s resulted in error: %s",
                     playlist_id, e,
                     exc_info=True,
