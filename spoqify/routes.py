@@ -84,3 +84,8 @@ async def anonymize(playlist_id):
 async def playlist(playlist_id):
     return quart.redirect(
         f'https://spoqify.com/anonymize/?playlist={playlist_id}')
+
+
+@app.route('/')
+async def index():
+    return quart.redirect('https://spoqify.com/')
