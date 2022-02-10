@@ -102,7 +102,7 @@ async def playlist(playlist_id):
         quart.request.headers.get('user-agent'),
     )
     return quart.redirect(
-        f'https://spoqify.com/anonymize/?playlist={playlist_id}')
+        f'https://spoqify.com/anonymize/?playlist={quart.request.url}')
 
 
 @app.route('/')
