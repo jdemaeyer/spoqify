@@ -1,4 +1,5 @@
 import datetime
+import html
 import re
 
 from spoqify.app import app
@@ -20,10 +21,10 @@ async def load_playlist(playlist_id):
 def parse_playlist(body):
     url = re.search(
         '<meta property="og:url" content="(.*?)" ?/>', body).group(1)
-    title = re.search(
-        '<meta property="og:title" content="(.*?)" ?/>', body).group(1)
-    description = re.search(
-        '<meta name="description" content="(.*?)" ?/>', body).group(1)
+    title = html.unescape(re.search(
+        '<meta property="og:title" content="(.*?)" ?/>', body).group(1))
+    description = html.unescape(re.search(
+        '<meta name="description" content="(.*?)" ?/>', body).group(1))
     tracks = re.findall(
         '<meta property="music:song" '
         'content="https://open.spotify.com/track/(.*?)" ?/>',
