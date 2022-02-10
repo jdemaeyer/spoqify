@@ -30,7 +30,8 @@ def parse_web_playlist(body):
         'content="https://open.spotify.com/track/(.*?)" ?/>',
         body,
     )
-    assert tracks, "Unable to find tracks"
+    if not tracks:
+        raise ValueError("Unable to find tracks")
     return {
         'url': url,
         'title': title,
@@ -71,7 +72,16 @@ async def create_playlist(title, description, tracks):
 
 
 async def anonymize_playlist(playlist_id):
-    data = await load_web_playlist(playlist_id)
+    try:
+        data = await load_web_playlist(playlist_id)
+    except ValueError:
+        app.logger.warning(
+            "Falling back to Spotify API for playlist %s", playlist_id)
+        # XXX: This is not the same as what we see in a Private Browser
+        #      session. Possibly it's personalized to the user that created the
+        #      Spotify app? We will assume here that the user still prefers
+        #      this over their own personalization.
+        data = await load_api_playlist(playlist_id)
     app.logger.debug(
         "Found %d tracks for playlist %s",
         len(data['tracks']), playlist_id)
