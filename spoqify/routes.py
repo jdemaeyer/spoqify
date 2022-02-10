@@ -92,6 +92,7 @@ async def redirect():
 
 
 @app.route('/playlist/<playlist_id>')
+@app.route('/station/playlist/<playlist_id>')
 async def playlist(playlist_id):
     return quart.redirect(
         f'https://spoqify.com/anonymize/?playlist={playlist_id}')
