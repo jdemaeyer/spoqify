@@ -80,6 +80,17 @@ async def anonymize(playlist_id):
     return response
 
 
+@app.route('/redirect')
+async def redirect():
+    playlist_str = quart.request.args.get('playlist')
+    playlist_id = playlist_str.split('?')[0].split('/')[-1].split(':')[-1]
+    if not re.match(r'[a-zA-Z0-9]+$', playlist_id):
+        return quart.abort(400, "Invalid playlist ID")
+    task = _get_task(playlist_id)
+    url = await asyncio.shield(task)
+    return quart.redirect(url)
+
+
 @app.route('/playlist/<playlist_id>')
 async def playlist(playlist_id):
     return quart.redirect(

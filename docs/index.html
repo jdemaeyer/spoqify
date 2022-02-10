@@ -83,6 +83,11 @@
         text-decoration: none;
       }
     </style>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById("playlist-form").action = "/anonymize/";
+      });
+    </script>
   </head>
   <body>
     <main class="container">
@@ -133,7 +138,7 @@
         <p>
           Alternatively, paste a playlist URL into this form:
         </p>
-        <form action="/anonymize/">
+        <form id="playlist-form" action="https://open.spoqify.com/redirect">
           <div class="flex-grid">
             <div style="min-width: 300px; flex-grow: 4">
               <input

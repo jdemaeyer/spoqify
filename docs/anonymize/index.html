@@ -45,6 +45,14 @@
     </style>
     <script>
       document.addEventListener("DOMContentLoaded", function() {
+        if (!('EventSource' in window)) {
+          // Browser supports JavaScript but not SSE
+          window.location.replace(
+            `https://open.spoqify.com/redirect${window.location.search}`
+          );
+          return;
+        }
+
         const params = new Proxy(new URLSearchParams(window.location.search), {
           get: (searchParams, prop) => searchParams.get(prop),
         });
@@ -111,6 +119,21 @@
   </head>
   <body>
     <main class="container" style="text-align: center">
+      <noscript>
+        <dialog open>
+          <article>
+            <p>
+              Oops, looks like your're using an odd browser.
+            </p>
+            <p>
+              <strong>
+                Please paste the playlist URL directly into the form at
+                <a href="https://spoqify.com/">spoqify.com</a>.
+              </strong>
+            </p>
+          </article>
+        </dialog>
+      </noscript>
       <section id="title">
         <h1>Anonymizing playlist...</h1>
       </section>
@@ -124,9 +147,7 @@
         </p>
       </section>
       <section id="flavor" style="overflow: hidden">
-        <p id="flavor-text">
-          Putting on fake moustache...
-        </p>
+        <p id="flavor-text"></p>
       </section>
       <dialog id="error">
         <article>
