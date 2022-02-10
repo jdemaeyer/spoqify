@@ -61,7 +61,11 @@
         } else {
           const playlistId =
             params.playlist.split('?')[0].split('/').at(-1).split(':').at(-1);
-          const sse = new EventSource(`https://open.spoqify.com/anonymize/${playlistId}`);
+          const stationSuffix =
+            params.playlist.match(/station[/:]/) ? "/station" : "";
+          const sse = new EventSource(
+            `https://open.spoqify.com/anonymize/${playlistId}${stationSuffix}`
+          );
           sse.addEventListener("queued", function(e) {
             document.getElementById("queue-info").classList.remove("is-hidden");
             document.getElementById("queue-pos").innerHTML = e.data;

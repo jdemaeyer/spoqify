@@ -1,5 +1,6 @@
 import datetime
 import html
+import random
 import re
 
 from spoqify.app import app
@@ -51,6 +52,17 @@ async def load_api_playlist(playlist_id):
     }
 
 
+async def load_recommendations(tracks):
+    app.logger.debug("Loading API recommendations for tracks %s", tracks)
+    assert all(re.match(r'[a-zA-Z0-9]+$', track) for track in tracks)
+    tracks_str = ','.join(tracks)
+    data = await call_api(
+        f'recommendations?seed_tracks={tracks_str}&limit=50',
+        use_client_token=True,
+    )
+    return [track['id'] for track in data['tracks']]
+
+
 async def create_playlist(title, description, tracks):
     app.logger.debug("Creating new playlist '%s'", title)
     data = await call_api(
@@ -71,7 +83,7 @@ async def create_playlist(title, description, tracks):
     return data['external_urls']['spotify']
 
 
-async def anonymize_playlist(playlist_id):
+async def anonymize_playlist(playlist_id, station=False):
     try:
         data = await load_web_playlist(playlist_id)
     except ValueError:
@@ -85,6 +97,13 @@ async def anonymize_playlist(playlist_id):
     app.logger.debug(
         "Found %d tracks for playlist %s",
         len(data['tracks']), playlist_id)
+    if station:
+        app.logger.debug(
+            "Loading recommendations based on five songs from playlist %s",
+            playlist_id)
+        data['title'] = f"Playlist Radio based on {data['title']}"
+        data['tracks'] = await load_recommendations(
+            random.sample(data['tracks'], 5))
     date_str = datetime.date.today().strftime('%d %B %Y').lstrip('0')
     reanon_url = data['url'].replace('spotify.com', 'spoqify.com')
     description = (

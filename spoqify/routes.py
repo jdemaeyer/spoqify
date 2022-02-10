@@ -14,16 +14,16 @@ def encode_event(event, data):
     return f"event: {event}\ndata: {data}\r\n\r\n".encode()
 
 
-async def limited_anonymize_playlist(playlist_id):
+async def limited_anonymize_playlist(playlist_id, station=False):
     async with api_worker_limit:
-        return (await anonymize_playlist(playlist_id))
+        return (await anonymize_playlist(playlist_id, station=station))
 
 
-def _get_task(playlist_id):
+def _get_task(playlist_id, station=False):
     if playlist_id not in app.tasks:
         app.logger.debug("Creating task for playlist %s", playlist_id)
         app.tasks[playlist_id] = asyncio.create_task(
-            limited_anonymize_playlist(playlist_id))
+            limited_anonymize_playlist(playlist_id, station=station))
 
         def _remove_task(task):
             app.tasks.pop(playlist_id, None)
@@ -36,12 +36,13 @@ def _get_task(playlist_id):
 
 
 @app.route('/anonymize/<playlist_id>')
-async def anonymize(playlist_id):
+@app.route('/anonymize/<playlist_id>/station', defaults={'station': True})
+async def anonymize(playlist_id, station=False):
     if not re.match(r'[a-zA-Z0-9]+$', playlist_id):
         return quart.abort(400, "Invalid playlist ID")
 
     async def make_events():
-        task = _get_task(playlist_id)
+        task = _get_task(playlist_id, station=station)
         while True:
             if len(app.tasks) >= 5:
                 task_idx = len(app.tasks) - 1
@@ -86,7 +87,8 @@ async def redirect():
     playlist_id = playlist_str.split('?')[0].split('/')[-1].split(':')[-1]
     if not re.match(r'[a-zA-Z0-9]+$', playlist_id):
         return quart.abort(400, "Invalid playlist ID")
-    task = _get_task(playlist_id)
+    station = bool(re.search('station[/:]', playlist_str))
+    task = _get_task(playlist_id, station=station)
     url = await asyncio.shield(task)
     return quart.redirect(url)
 
