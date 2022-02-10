@@ -94,6 +94,11 @@ async def redirect():
 @app.route('/playlist/<playlist_id>')
 @app.route('/station/playlist/<playlist_id>')
 async def playlist(playlist_id):
+    app.logger.debug(
+        "Handling '%s' for user agent '%s'",
+        quart.request.url,
+        quart.request.headers.get('user-agent'),
+    )
     return quart.redirect(
         f'https://spoqify.com/anonymize/?playlist={playlist_id}')
 
