@@ -43,10 +43,39 @@
         padding: .11rem .25rem;
       }
 
+      .is-hidden {
+        display: none;
+      }
+
+      .is-blurred {
+        filter: blur(3px);
+        transition: 1s;
+      }
+
       .flex-grid {
         display: flex;
         flex-wrap: wrap;
         gap: 0 10px;
+      }
+
+      .with-overlay {
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .overlay {
+        width: 100%;
+        text-align: center;
+        position: absolute;
+        z-index: 1;
+      }
+
+      #demo-replay {
+        width: 20%;
+        cursor: pointer;
       }
 
       .gh-button {
@@ -86,6 +115,22 @@
     <script>
       document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("playlist-form").action = "/anonymize/";
+
+        const video = document.getElementById("demo");
+        const replayBtn = document.getElementById("demo-replay");
+
+        replayBtn.addEventListener("click", function() {
+          video.classList.remove("is-blurred");
+          video.play();
+          replayBtn.classList.add("is-hidden");
+        });
+
+        video.addEventListener("ended", function() {
+          window.setTimeout(function() {
+            video.classList.add("is-blurred");
+            replayBtn.classList.remove("is-hidden");
+          }, 3000);
+        });
       });
     </script>
   </head>
@@ -132,8 +177,14 @@
           <code>t</code> with a <code>q</code> in a Spotify playlist URL and
           you will be forwarded to an anonymized version of that playlist:
         </p>
-        <figure>
-          <video src="demo.mp4" style="width: 100%" autoplay muted></video>
+        <figure class="with-overlay">
+          <div class="overlay">
+            <svg id="demo-replay" class="is-hidden" viewBox="0 0 200 200" alt="Play video">
+              <circle cx="100" cy="100" r="90" fill="none" stroke-width="15" stroke="#fff"/>
+              <polygon points="70, 55 70, 145 145, 100" fill="#fff"/>
+            </svg>
+          </div>
+          <video id="demo" src="demo.mp4" style="width: 100%" autoplay muted></video>
         </figure>
         <p>
           Alternatively, paste a playlist URL into this form:
