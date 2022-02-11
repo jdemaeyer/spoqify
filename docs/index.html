@@ -59,23 +59,26 @@
       }
 
       .with-overlay {
-        display: flex;
-        flex-flow: row nowrap;
-        align-items: center;
-        justify-content: center;
         position: relative;
       }
 
-      .overlay {
-        width: 100%;
-        text-align: center;
+      #demo-overlay {
         position: absolute;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
         z-index: 1;
+        background-color: rgba(0, 0, 0, .5);
       }
 
-      #demo-replay {
+      #demo-overlay svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        margin: auto;
         width: 20%;
-        cursor: pointer;
       }
 
       .gh-button {
@@ -117,18 +120,21 @@
         document.getElementById("playlist-form").action = "/anonymize/";
 
         const video = document.getElementById("demo");
-        const replayBtn = document.getElementById("demo-replay");
+        const overlay = document.getElementById("demo-overlay");
 
-        replayBtn.addEventListener("click", function() {
-          video.classList.remove("is-blurred");
+        overlay.addEventListener("click", function() {
           video.play();
-          replayBtn.classList.add("is-hidden");
+        });
+
+        video.addEventListener("play", function() {
+          video.classList.remove("is-blurred");
+          overlay.classList.add("is-hidden");
         });
 
         video.addEventListener("ended", function() {
           window.setTimeout(function() {
             video.classList.add("is-blurred");
-            replayBtn.classList.remove("is-hidden");
+            overlay.classList.remove("is-hidden");
           }, 3000);
         });
       });
@@ -178,8 +184,8 @@
           you will be forwarded to an anonymized version of that playlist:
         </p>
         <figure class="with-overlay">
-          <div class="overlay">
-            <svg id="demo-replay" class="is-hidden" viewBox="0 0 200 200" alt="Play video">
+          <div id="demo-overlay">
+            <svg viewBox="0 0 200 200" alt="Play video">
               <circle cx="100" cy="100" r="90" fill="none" stroke-width="15" stroke="#fff"/>
               <polygon points="70, 55 70, 145 145, 100" fill="#fff"/>
             </svg>
