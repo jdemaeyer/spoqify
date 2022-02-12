@@ -60,7 +60,7 @@
           window.location.replace('https://spoqify.com/');
         } else {
           const playlistId =
-            params.playlist.split('?')[0].split('/').at(-1).split(':').at(-1);
+            params.playlist.split('?')[0].split('/').pop().split(':').pop();
           const stationSuffix =
             params.playlist.match(/station[/:]/) ? "/station" : "";
           const sse = new EventSource(
