@@ -44,15 +44,7 @@
       }
     </style>
     <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        if (!('EventSource' in window)) {
-          // Browser supports JavaScript but not SSE
-          window.location.replace(
-            `https://open.spoqify.com/redirect${window.location.search}`
-          );
-          return;
-        }
-
+      function requestAnonymization() {
         const params = new Proxy(new URLSearchParams(window.location.search), {
           get: (searchParams, prop) => searchParams.get(prop),
         });
@@ -83,16 +75,18 @@
             document.getElementById("error").setAttribute("open", true);
           });
         }
+      }
 
-        // Couldn't resist :)
-
-        function shuffle(array) {
-          for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-          }
-          return array;
+      function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
         }
+        return array;
+      }
+
+      function startFlavor() {
+        // Couldn't resist :)
         const flavorStrings = shuffle([
           "Growing mustache...",
           "Cutting holes into newspaper...",
@@ -118,6 +112,18 @@
         }
         nextFlavor();
         window.setInterval(nextFlavor, 3000);
+      }
+
+      document.addEventListener("DOMContentLoaded", function() {
+        try {
+          requestAnonymization();
+        } catch (e) {
+          // e.g. browser does not support SSE or I screwed up somewhere in JS
+          window.location.replace(
+            `https://open.spoqify.com/redirect${window.location.search}`
+          );
+        }
+        startFlavor();
       });
     </script>
   </head>
