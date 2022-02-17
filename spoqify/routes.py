@@ -3,6 +3,7 @@ import re
 
 import quart
 
+import spoqify
 from spoqify.app import app
 from spoqify.anonymization import anonymize_playlist
 
@@ -20,6 +21,7 @@ async def limited_anonymize_playlist(playlist_id, station=False):
 
 
 def _get_task(playlist_id, station=False):
+    app.recent_reqs.record()
     if playlist_id not in app.tasks:
         app.logger.debug("Creating task for playlist %s", playlist_id)
         app.tasks[playlist_id] = asyncio.create_task(
@@ -103,6 +105,15 @@ async def playlist(playlist_id):
     )
     return quart.redirect(
         f'https://spoqify.com/anonymize/?playlist={quart.request.url}')
+
+
+@app.route('/status')
+async def status():
+    return {
+        'status': 'ok',
+        'version': spoqify.__version__,
+        'recent_requests': app.recent_reqs.get()
+    }
 
 
 @app.route('/')

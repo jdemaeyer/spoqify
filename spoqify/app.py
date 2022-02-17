@@ -4,6 +4,8 @@ import os
 import aiohttp
 import quart
 
+from spoqify.utils import RecentCounter
+
 
 if os.getenv('SENTRY_DSN'):
     import sentry_sdk
@@ -34,6 +36,7 @@ async def startup():
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     app.session = aiohttp.ClientSession(raise_for_status=True)
     app.tasks = {}
+    app.recent_reqs = RecentCounter()
 
 
 @app.after_serving
