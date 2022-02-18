@@ -5,7 +5,8 @@ import quart
 
 import spoqify
 from spoqify.app import app
-from spoqify.anonymization import anonymize_playlist
+from spoqify.anonymization import (
+    anonymize_playlist, make_recommendations_playlist)
 
 
 api_worker_limit = asyncio.Semaphore(4)
@@ -105,6 +106,18 @@ async def playlist(playlist_id):
     )
     return quart.redirect(
         f'https://spoqify.com/anonymize/?playlist={quart.request.url}')
+
+
+@app.route('/track/<track_id>')
+@app.route('/artist/<artist_id>')
+@app.route('/album/<album_id>')
+async def recommendations(**kwargs):
+    # Unadvertised endpoint to get playlists based on Spotify recommendations
+    app.recent_reqs.record()
+    async with api_worker_limit:
+        url = await make_recommendations_playlist(**kwargs)
+        app.logger.info("Created recommendations playlist: %s", url)
+        return quart.redirect(url)
 
 
 @app.route('/status')
