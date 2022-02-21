@@ -19,7 +19,7 @@ async def load_web_playlist(playlist_id):
         try:
             return parse_web_playlist(await resp.text())
         except AttributeError:
-            raise ValueError("Unable to find playlist.")
+            raise ValueError("Unable to find playlist. It's probably private?")
 
 
 def parse_web_playlist(body):
@@ -51,7 +51,7 @@ async def load_api_playlist(playlist_id):
             f'playlists/{playlist_id}', use_client_token=True)
     except aiohttp.ClientResponseError as e:
         if e.status == 404:
-            raise ValueError("Unable to find playlist")
+            raise ValueError("Unable to find playlist. It's probably private?")
         app.logger.error("Unexpected API error for playlist %s", playlist_id)
         raise ValueError("Unexpected error")
     return {
