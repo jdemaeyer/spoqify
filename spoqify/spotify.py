@@ -37,7 +37,7 @@ cache = AuthCache()
 
 async def get_token():
     cache.load(require_init=True)
-    if cache.get('expires', 0) < time.time() - 60:
+    if cache.get('expires', 0) < time.time() - 300:
         if 'code' in cache:
             app.logger.debug("Authenticating user with code")
             data = {
@@ -74,7 +74,7 @@ async def get_token():
 
 async def get_client_token():
     cache.load()
-    if cache.get('client_expires', 0) < time.time() - 60:
+    if cache.get('client_expires', 0) < time.time() - 300:
         app.logger.debug("Authenticating client")
         resp = await app.session.post(
             'https://accounts.spotify.com/api/token',
