@@ -48,15 +48,12 @@
         const params = new Proxy(new URLSearchParams(window.location.search), {
           get: (searchParams, prop) => searchParams.get(prop),
         });
-        if (!params.playlist) {
+        const url = params.url || params.playlist;
+        if (!url) {
           window.location.replace('https://spoqify.com/');
         } else {
-          const playlistId =
-            params.playlist.split('?')[0].split('/').pop().split(':').pop();
-          const stationSuffix =
-            params.playlist.match(/station[/:]/) ? "/station" : "";
           const sse = new EventSource(
-            `https://open.spoqify.com/anonymize/${playlistId}${stationSuffix}`
+            `https://open.spoqify.com/anonymize?url=${url}`
           );
           sse.addEventListener("queued", function(e) {
             document.getElementById("queue-info").classList.remove("is-hidden");
@@ -70,8 +67,6 @@
             sse.close();
             if (e.data)
               document.getElementById("error-msg").innerHTML = e.data;
-            else if (!playlistId.match(/^[A-Za-z0-9]+$/))
-              document.getElementById("error-msg").innerHTML = "Invalid playlist ID.";
             document.getElementById("error").setAttribute("open", true);
           });
         }
