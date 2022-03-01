@@ -153,6 +153,11 @@ async def make_recommendations_playlist(
     else:
         raise ValueError("Please supply at least one argument")
     tracks = await load_recommendations(tracks=tracks, artists=artists)
+    if not tracks:
+        raise ValueError(
+            f"Spotify's API did not return any recommendations for "
+            f"'{data['name']}'. This can sometimes happen for little-known "
+            "songs or artists. Please try again with a song radio URL.")
     date_str = datetime.date.today().strftime('%d %B %Y').lstrip('0')
     description = f"Anonymized on {date_str} via spoqify.com."
     url = await create_playlist(title, description, tracks)
