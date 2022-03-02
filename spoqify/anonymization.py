@@ -121,8 +121,10 @@ async def anonymize_playlist(playlist_id, station=False):
             "Loading recommendations based on five songs from playlist %s",
             playlist_id)
         data['title'] = f"Playlist Radio based on {data['title']}"
-        data['tracks'] = await load_recommendations(
-            tracks=random.sample(data['tracks'], 5))
+        sample_tracks = random.sample(
+            data['tracks'],
+            min(5, len(data['tracks'])))
+        data['tracks'] = await load_recommendations(tracks=sample_tracks)
     date_str = datetime.date.today().strftime('%d %B %Y').lstrip('0')
     reanon_url = data['url'].replace('spotify.com', 'spoqify.com')
     description = (
