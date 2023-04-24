@@ -8,14 +8,25 @@ from spoqify.app import app
 from spoqify.spotify import call_api
 
 
+class Rejected(Exception):
+    pass
+
+
 async def load_web_playlist(playlist_id):
     app.logger.debug("Loading web tracks for playlist %s", playlist_id)
     resp = await app.session.get(
         f'https://open.spotify.com/playlist/{playlist_id}',
         headers={'User-Agent': app.config['USER_AGENT']},
         allow_redirects=False,
+        raise_for_status=False,
     )
     async with resp:
+        if resp.status == 404:
+            raise Rejected("Unable to find playlist. It's probably private?")
+        elif resp.status != 200:
+            raise Rejected(
+                "Spotify gave us an error while we tried to load the playlist."
+            )
         try:
             return parse_web_playlist(await resp.text())
         except AttributeError:
@@ -29,6 +40,17 @@ def parse_web_playlist(body):
         '<meta property="og:title" content="(.*?)" ?/>', body).group(1))
     description = html.unescape(re.search(
         '<meta name="description" content="(.*?)" ?/>', body).group(1))
+    creator = html.unescape(
+        re.search(
+            '<meta name="music:creator" content="(.*?)" ?/>',
+            body,
+        ).group(1)
+    ).split('/')[-1]
+    if creator != 'spotify':
+        raise Rejected(
+            "Spoqify only works on auto-generated playlists like Song Radio. "
+            "Please try again with a song radio URL!"
+        )
     tracks = re.findall(
         '<meta property="music:song" '
         'content="https://open.spotify.com/track/(.*?)" ?/>',
@@ -51,7 +73,7 @@ async def load_api_playlist(playlist_id):
             f'playlists/{playlist_id}', use_client_token=True)
     except aiohttp.ClientResponseError as e:
         if e.status == 404:
-            raise ValueError("Unable to find playlist. It's probably private?")
+            raise Rejected("Unable to find playlist. It's probably private?")
         app.logger.error("Unexpected API error for playlist %s", playlist_id)
         raise ValueError("Unexpected error")
     return {

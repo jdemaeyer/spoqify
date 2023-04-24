@@ -6,7 +6,10 @@ import quart
 import spoqify
 from spoqify.app import app
 from spoqify.anonymization import (
-    anonymize_playlist, make_recommendations_playlist)
+    anonymize_playlist,
+    make_recommendations_playlist,
+    Rejected,
+)
 
 
 api_worker_limit = asyncio.Semaphore(4)
@@ -82,7 +85,7 @@ async def anonymize(stream=True):
     else:
         try:
             task = _get_task(url)
-        except ValueError as e:
+        except (Rejected, ValueError) as e:
             return quart.abort(400, str(e))
         result_url = await asyncio.shield(task)
         return quart.redirect(result_url)
@@ -106,6 +109,10 @@ async def stream_task_status(url):
             except ValueError:
                 task_idx = 0
             yield encode_event('queued', task_idx)
+        except Rejected as e:
+            app.logger.info("Rejected request for %s: %s", url, e)
+            yield encode_event('error', str(e))
+            break
         except Exception as e:
             app.logger.error(
                 "Request for %s resulted in error: %s",
