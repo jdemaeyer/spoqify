@@ -150,8 +150,8 @@ async def anonymize_playlist(playlist_id, station=False):
     date_str = datetime.date.today().strftime('%d %B %Y').lstrip('0')
     reanon_url = data['url'].replace('spotify.com', 'spoqify.com')
     description = (
-        f"Anonymized on {date_str} via spoqify.com. | Original playlist: "
-        f"{data['url']} | Freshly anonymized playlist: {reanon_url}")
+        f"Anonymized on {date_str} via spoqify.com · Original playlist: "
+        f"{data['url']} · Freshly anonymized playlist: {reanon_url}")
     url = await create_playlist(data['title'], description, data['tracks'])
     return url
 
