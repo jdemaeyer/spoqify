@@ -74,7 +74,6 @@ async def anonymize(stream=True):
         response = await quart.make_response(
             stream_task_status(url),
             {
-                'Access-Control-Allow-Origin': 'https://spoqify.com',
                 'Content-Type': 'text/event-stream',
                 'Cache-Control': 'no-cache',
                 'Transfer-Encoding': 'chunked',

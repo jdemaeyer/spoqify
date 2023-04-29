@@ -28,5 +28,6 @@ setup(
     install_requires=[
         'aiohttp',
         'quart',
+        'quart-cors',
     ],
 )

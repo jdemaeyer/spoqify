@@ -54,6 +54,10 @@ multidict==6.0.4
 priority==2.0.0
     # via hypercorn
 quart==0.18.4
+    # via
+    #   quart-cors
+    #   spoqify (setup.py)
+quart-cors==0.6.0
     # via spoqify (setup.py)
 toml==0.10.2
     # via hypercorn
