@@ -28,7 +28,7 @@ app.config['USER_AGENT'] = (
     'like Gecko) Chrome/92.0.4515.131 Safari/537.36')
 app.config['QUART_CORS_ALLOW_ORIGIN'] = [
     'https://spoqify.com',
-    re.compile(r'https?:\/\/.*spotify\.com'),
+    re.compile(r'https?:\/\/(.*\.)?spotify\.com'),
 ]
 app.config['QUART_CORS_EXPOSE_HEADERS'] = ['*']
 app.config['SPOTIFY_CLIENT_ID'] = os.getenv('SPOTIFY_CLIENT_ID')
