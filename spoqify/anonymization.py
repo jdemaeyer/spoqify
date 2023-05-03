@@ -52,7 +52,7 @@ def parse_web_playlist(body):
             "Please try again with a song radio URL!"
         )
     tracks = re.findall(
-        '<meta property="music:song" '
+        '<meta name="music:song" '
         'content="https://open.spotify.com/track/(.*?)" ?/>',
         body,
     )
