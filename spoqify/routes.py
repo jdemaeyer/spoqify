@@ -116,6 +116,7 @@ async def stream_task_status(url):
             yield encode_event('queued', task_idx)
         except Rejected as e:
             app.logger.info("Rejected request for %s: %s", url, e)
+            app.recent_reqs.record('rejected')
             yield encode_event('error', str(e))
             break
         except Exception as e:
@@ -124,10 +125,12 @@ async def stream_task_status(url):
                 url, e,
                 exc_info=True,
             )
+            app.recent_reqs.record('failed')
             yield encode_event('error', str(e))
             break
         else:
             app.logger.info("Anonymized %s: %s", url, result_url)
+            app.recent_reqs.record('success')
             yield encode_event('done', result_url)
             break
 
@@ -156,10 +159,12 @@ async def spotify_urls(**kwargs):
 
 @app.route('/status')
 async def status():
+    stats = app.recent_reqs.get()
     return {
         'status': 'ok',
         'version': spoqify.__version__,
-        'recent_requests': app.recent_reqs.get()
+        'recent_stats': stats,
+        'recent_requests': stats.get('request', 0),
     }
 
 

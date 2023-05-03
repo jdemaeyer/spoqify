@@ -16,20 +16,24 @@ class RecentCounter:
 
     def __init__(self, max_age=86400):
         self.max_age = max_age
-        self.history = []
+        self.history = {}
 
-    def record(self):
-        self.history.append(time.time())
+    def record(self, kind='request'):
+        self.history.setdefault(kind, []).append(time.time())
 
-    def clean(self, key=None):
+    def clean(self):
         threshold = time.time() - self.max_age
-        for idx, x in enumerate(self.history):
-            if x > threshold:
-                break
-        else:
-            idx = len(self.history)
-        self.history = self.history[idx:]
+        for k in list(self.history):
+            for idx, x in enumerate(self.history[k]):
+                if x > threshold:
+                    break
+            else:
+                idx = len(self.history[k])
+            self.history[k] = self.history[k][idx:]
 
     def get(self):
         self.clean()
-        return len(self.history)
+        return {
+            k: len(v)
+            for k, v in self.history.items()
+        }
