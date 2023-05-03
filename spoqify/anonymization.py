@@ -156,6 +156,41 @@ async def anonymize_playlist(playlist_id, station=False):
     return url
 
 
+async def anonymize_from_track(track_id):
+    try:
+        playlist_id = await get_radio_playlist_id(track_id)
+    except Exception:
+        url = await make_recommendations_playlist(track_id=track_id)
+    else:
+        url = await anonymize_playlist(playlist_id)
+    return url
+
+
+async def get_radio_playlist_id(track_id):
+    resp = await app.session.get(
+        f'https://open.spotify.com/track/{track_id}',
+        headers={'User-Agent': app.config['USER_AGENT']},
+        allow_redirects=False,
+    )
+    async with resp:
+        body = await resp.text()
+        token = re.search(r'"accessToken":"([\w-]+)"', body).group(1)
+    resp = await app.session.get(
+        f'https://spclient.wg.spotify.com/'
+        f'inspiredby-mix/v2/seed_to_playlist/spotify:track:{track_id}',
+        params={'response-format': 'json'},
+        headers={
+            'Authorization': f'Bearer {token}',
+            'User-Agent': app.config['USER_AGENT'],
+        },
+        allow_redirects=False,
+    )
+    async with resp:
+        data = await resp.json()
+        playlist_id = data['mediaItems'][0]['uri'].split(':')[-1]
+    return playlist_id
+
+
 async def make_recommendations_playlist(
         track_id=None, artist_id=None, album_id=None):
     tracks = None

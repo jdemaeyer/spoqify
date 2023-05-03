@@ -6,6 +6,7 @@ import quart
 import spoqify
 from spoqify.app import app
 from spoqify.anonymization import (
+    anonymize_from_track,
     anonymize_playlist,
     make_recommendations_playlist,
     Rejected,
@@ -32,7 +33,12 @@ def _make_task(url):
             'playlist_id': m.group(1),
             'station': bool(re.search('station[/:]', url)),
         }
-    elif m := re.search(r'(artist|album|track)[/:]([A-Za-z0-9]+)', url):
+    elif m := re.search(r'track[/:]([A-Za-z0-9]+)', url):
+        f = anonymize_from_track
+        kwargs = {
+            'track_id': m.group(1),
+        }
+    elif m := re.search(r'(artist|album)[/:]([A-Za-z0-9]+)', url):
         f = make_recommendations_playlist
         kwargs = {
             m.group(1) + '_id': m.group(2),
