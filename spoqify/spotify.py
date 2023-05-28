@@ -116,9 +116,13 @@ async def call_api(endpoint, data=None, use_client_token=False):
                 else:
                     app.logger.warning("Got 401, forcing user token refresh")
                     cache['expires'] = 0
-            elif e.status == 500 and retry < 3:
+            elif e.status >= 500 and retry < 3:
                 delay = .6 * 2 ** retry
-                app.logger.warning("Got 500, will retry in %s seconds", delay)
+                app.logger.warning(
+                    "Got HTTP %d, will retry in %s seconds",
+                    e.status,
+                    delay,
+                )
                 await asyncio.sleep(delay)
                 retry += 1
             else:
