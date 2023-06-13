@@ -148,10 +148,9 @@ async def anonymize_playlist(playlist_id, station=False):
             min(5, len(data['tracks'])))
         data['tracks'] = await load_recommendations(tracks=sample_tracks)
     date_str = datetime.date.today().strftime('%d %B %Y').lstrip('0')
-    reanon_url = data['url'].replace('spotify.com', 'spoqify.com')
     description = (
         f"Anonymized on {date_str} via spoqify.com · Original playlist: "
-        f"{data['url']} · Freshly anonymized playlist: {reanon_url}")
+        f"{data['url']} · Buy me a Coffee: https://donate.spoqify.com")
     url = await create_playlist(data['title'], description, data['tracks'])
     return url
 
@@ -218,6 +217,8 @@ async def make_recommendations_playlist(
             f"'{data['name']}'. This can sometimes happen for little-known "
             "songs or artists. Please try again with a song radio URL.")
     date_str = datetime.date.today().strftime('%d %B %Y').lstrip('0')
-    description = f"Anonymized on {date_str} via spoqify.com."
+    description = (
+        f"Anonymized on {date_str} via spoqify.com · Buy me a Coffee: "
+        f"https://donate.spoqify.com/")
     url = await create_playlist(title, description, tracks)
     return url
