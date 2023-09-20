@@ -45,8 +45,13 @@ def init_token(manual=False):
         json.dump(data, f)
 
 
+@click.option(
+    '--check',
+    help="Print playlist count without deleting anything",
+    is_flag=True,
+    default=False)
 @app.cli.command('housekeep', help="Delete 50 old playlists")
-def housekeep():
+def housekeep(check=False):
     def _await(promise):
         return asyncio.get_event_loop().run_until_complete(promise)
 
@@ -56,7 +61,8 @@ def housekeep():
     _await(startup())
     playlists = _call('me/playlists?limit=50&offset=1000')
     app.logger.info("Total playlists: %d", playlists['total'])
-    for playlist in playlists['items']:
-        # Playlists will still be available for users who followed them
-        _call(f'playlists/{playlist["id"]}/followers', method='DELETE')
+    if not check:
+        for playlist in playlists['items']:
+            # Playlists will remain available for users who followed them
+            _call(f'playlists/{playlist["id"]}/followers', method='DELETE')
     _await(shutdown())
