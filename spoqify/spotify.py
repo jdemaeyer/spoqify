@@ -153,7 +153,6 @@ async def call_api_now(
         url=f'https://api.spotify.com/v1/{endpoint}',
         json=data,
         headers={'Authorization': f'Bearer {token}'},
-        raise_for_status=False,
     )
     async with resp:
         if (await resp.text()):
