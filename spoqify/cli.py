@@ -1,3 +1,4 @@
+import asyncio
 import http.server
 import json
 import os
@@ -5,7 +6,8 @@ from urllib.parse import urlencode
 
 import click
 
-from spoqify.app import app
+from spoqify.app import app, shutdown, startup
+from spoqify.spotify import call_api
 
 
 @click.option(
@@ -41,3 +43,20 @@ def init_token(manual=False):
     os.makedirs(os.path.dirname(app.config['AUTH_FILE_PATH']), exist_ok=True)
     with open(app.config['AUTH_FILE_PATH'], 'w') as f:
         json.dump(data, f)
+
+
+@app.cli.command('housekeep', help="Delete 50 old playlists")
+def housekeep():
+    def _await(promise):
+        return asyncio.get_event_loop().run_until_complete(promise)
+
+    def _call(*args, **kwargs):
+        return _await(call_api(*args, **kwargs))
+
+    _await(startup())
+    playlists = _call('me/playlists?limit=50&offset=1000')
+    app.logger.info("Total playlists: %d", playlists['total'])
+    for playlist in playlists['items']:
+        # Playlists will still be available for users who followed them
+        _call(f'playlists/{playlist["id"]}/followers', method='DELETE')
+    _await(shutdown())

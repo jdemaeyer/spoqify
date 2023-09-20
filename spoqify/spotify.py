@@ -94,13 +94,17 @@ async def get_client_token():
     return cache['client_token']
 
 
-async def call_api(endpoint, data=None, use_client_token=False):
+async def call_api(endpoint, data=None, use_client_token=False, method=None):
     retry = 0
     while True:
         await api_calls_allowed.wait()
         try:
             resp = await call_api_now(
-                endpoint, data=data, use_client_token=use_client_token)
+                endpoint,
+                data=data,
+                use_client_token=use_client_token,
+                method=method,
+            )
             return resp
         except aiohttp.ClientResponseError as e:
             if e.status == 429:
@@ -131,7 +135,8 @@ async def call_api(endpoint, data=None, use_client_token=False):
             break
 
 
-async def call_api_now(endpoint, data=None, use_client_token=False):
+async def call_api_now(
+        endpoint, data=None, use_client_token=False, method=None):
     if use_client_token:
         token = await get_client_token()
     else:
@@ -141,11 +146,15 @@ async def call_api_now(endpoint, data=None, use_client_token=False):
         endpoint,
         'client' if use_client_token else 'user',
     )
+    if not method:
+        method = 'GET' if data is None else 'POST'
     resp = await app.session.request(
-        method='GET' if data is None else 'POST',
+        method=method,
         url=f'https://api.spotify.com/v1/{endpoint}',
         json=data,
         headers={'Authorization': f'Bearer {token}'},
+        raise_for_status=False,
     )
     async with resp:
-        return (await resp.json())
+        if (await resp.text()):
+            return (await resp.json())
