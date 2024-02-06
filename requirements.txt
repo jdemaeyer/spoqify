@@ -6,21 +6,23 @@
 #
 aiofiles==23.2.1
     # via quart
-aiohttp==3.8.5
+aiohttp==3.9.3
     # via spoqify (setup.py)
 aiosignal==1.3.1
     # via aiohttp
-async-timeout==4.0.3
+attrs==23.2.0
     # via aiohttp
-attrs==23.1.0
-    # via aiohttp
-blinker==1.5
-    # via quart
-charset-normalizer==3.2.0
-    # via aiohttp
+blinker==1.7.0
+    # via
+    #   flask
+    #   quart
 click==8.1.7
+    # via
+    #   flask
+    #   quart
+flask==3.0.2
     # via quart
-frozenlist==1.4.0
+frozenlist==1.4.1
     # via
     #   aiohttp
     #   aiosignal
@@ -32,36 +34,42 @@ h2==4.1.0
     # via hypercorn
 hpack==4.0.0
     # via h2
-hypercorn==0.14.4
+hypercorn==0.16.0
     # via quart
 hyperframe==6.0.1
     # via h2
-idna==3.4
+idna==3.6
     # via yarl
 itsdangerous==2.1.2
-    # via quart
-jinja2==3.1.2
-    # via quart
-markupsafe==2.1.3
+    # via
+    #   flask
+    #   quart
+jinja2==3.1.3
+    # via
+    #   flask
+    #   quart
+markupsafe==2.1.5
     # via
     #   jinja2
     #   quart
     #   werkzeug
-multidict==6.0.4
+multidict==6.0.5
     # via
     #   aiohttp
     #   yarl
 priority==2.0.0
     # via hypercorn
-quart==0.18.4
+quart==0.19.4
     # via
     #   quart-cors
     #   spoqify (setup.py)
-quart-cors==0.6.0
+quart-cors==0.7.0
     # via spoqify (setup.py)
-werkzeug==2.3.7
-    # via quart
+werkzeug==3.0.1
+    # via
+    #   flask
+    #   quart
 wsproto==1.2.0
     # via hypercorn
-yarl==1.9.2
+yarl==1.9.4
     # via aiohttp
