@@ -79,9 +79,14 @@ def _get_url():
 @app.route('/redirect')
 async def redirect():
     url = _get_url()
+    if e := app.rejected_urls.get(url):
+        app.recent_reqs.record('cached')
+        return quart.abort(400, str(e))
     try:
         task = _get_task(url)
     except (Rejected, ValueError) as e:
+        if isinstance(e, Rejected):
+            app.rejected_urls[url] = e
         return quart.abort(400, str(e))
     result_url = await asyncio.shield(task)
     return quart.redirect(result_url)
@@ -103,6 +108,12 @@ async def anonymize():
 
 
 async def stream_task_status(url):
+    if e := app.rejected_urls.get(url):
+        # Most of our rejections are bots requesting the same URL over and
+        # over, no need to bother Spotify every time
+        app.recent_reqs.record('cached')
+        yield encode_event('error', str(e))
+        return
     try:
         task = _get_task(url)
     except ValueError as e:
@@ -122,6 +133,7 @@ async def stream_task_status(url):
             yield encode_event('queued', task_idx)
         except Rejected as e:
             app.logger.info("Rejected request for %s: %s", url, e)
+            app.rejected_urls[url] = e
             app.recent_reqs.record('rejected')
             yield encode_event('error', str(e))
             break

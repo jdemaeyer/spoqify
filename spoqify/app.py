@@ -45,6 +45,7 @@ async def startup():
     app.session = aiohttp.ClientSession(raise_for_status=True)
     app.tasks = {}
     app.recent_reqs = RecentCounter()
+    app.rejected_urls = {}
 
 
 @app.after_serving
