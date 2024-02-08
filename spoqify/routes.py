@@ -71,29 +71,35 @@ def _get_task(url):
     return app.tasks[url]
 
 
-@app.route('/anonymize')
-@app.route('/redirect', defaults={'stream': False})
-async def anonymize(stream=True):
+def _get_url():
     # Fallback to 'playlist' for legacy support
-    url = quart.request.args.get('url', quart.request.args.get('playlist'))
-    if stream:
-        response = await quart.make_response(
-            stream_task_status(url),
-            {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Transfer-Encoding': 'chunked',
-            },
-        )
-        response.timeout = None
-        return response
-    else:
-        try:
-            task = _get_task(url)
-        except (Rejected, ValueError) as e:
-            return quart.abort(400, str(e))
-        result_url = await asyncio.shield(task)
-        return quart.redirect(result_url)
+    return quart.request.args.get('url', quart.request.args.get('playlist'))
+
+
+@app.route('/redirect')
+async def redirect():
+    url = _get_url()
+    try:
+        task = _get_task(url)
+    except (Rejected, ValueError) as e:
+        return quart.abort(400, str(e))
+    result_url = await asyncio.shield(task)
+    return quart.redirect(result_url)
+
+
+@app.route('/anonymize')
+async def anonymize():
+    url = _get_url()
+    response = await quart.make_response(
+        stream_task_status(url),
+        {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Transfer-Encoding': 'chunked',
+        },
+    )
+    response.timeout = None
+    return response
 
 
 async def stream_task_status(url):
