@@ -84,12 +84,13 @@ async def redirect():
         return quart.abort(400, str(e))
     try:
         task = _get_task(url)
+        result_url = await asyncio.shield(task)
     except (Rejected, ValueError) as e:
         if isinstance(e, Rejected):
             app.rejected_urls[url] = e
         return quart.abort(400, str(e))
-    result_url = await asyncio.shield(task)
-    return quart.redirect(result_url)
+    else:
+        return quart.redirect(result_url)
 
 
 @app.route('/anonymize')
