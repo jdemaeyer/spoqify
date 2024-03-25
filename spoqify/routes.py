@@ -79,6 +79,8 @@ def _get_url():
 @app.route('/redirect')
 async def redirect():
     url = _get_url()
+    if not url:
+        return quart.redirect('https://spoqify.com/')
     if e := app.rejected_urls.get(url):
         app.recent_reqs.record('cached')
         return quart.abort(400, str(e))
