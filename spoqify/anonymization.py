@@ -135,6 +135,8 @@ async def anonymize_playlist(playlist_id, station=False):
         #      Spotify app? We will assume here that the user still prefers
         #      this over their own personalization.
         data = await load_api_playlist(playlist_id)
+    if not data['tracks']:
+        raise Rejected("Unable to retrieve tracks. Probably a daylist?")
     app.logger.debug(
         "Found %d tracks for playlist %s",
         len(data['tracks']), playlist_id)
