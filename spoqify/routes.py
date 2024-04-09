@@ -27,18 +27,18 @@ async def limit(f, *args, **kwargs):
 
 def _make_task(url):
     app.logger.debug("Creating task for %s", url)
-    if m := re.search(r'playlist[/:]([A-Za-z0-9]+)', url):
+    if m := re.search(r'playlist[/:]([A-Za-z0-9]{22})\b', url):
         f = anonymize_playlist
         kwargs = {
             'playlist_id': m.group(1),
             'station': bool(re.search('station[/:]', url)),
         }
-    elif m := re.search(r'track[/:]([A-Za-z0-9]+)', url):
+    elif m := re.search(r'track[/:]([A-Za-z0-9]{22})\b', url):
         f = anonymize_from_track
         kwargs = {
             'track_id': m.group(1),
         }
-    elif m := re.search(r'(artist|album)[/:]([A-Za-z0-9]+)', url):
+    elif m := re.search(r'(artist|album)[/:]([A-Za-z0-9]{22})\b', url):
         f = make_recommendations_playlist
         kwargs = {
             m.group(1) + '_id': m.group(2),
@@ -47,7 +47,7 @@ def _make_task(url):
         f = anonymize_playlist
         # Use best guess for 'abc123', 'abc123?si=xy' and 'abc123/station'
         playlist_id = url.split('/')[0].split('?')[0]
-        if not re.match(r'[a-zA-Z0-9]+$', playlist_id):
+        if not re.match(r'[a-zA-Z0-9]{22}$', playlist_id):
             raise ValueError("Invalid playlist ID")
         kwargs = {
             'playlist_id': playlist_id,
