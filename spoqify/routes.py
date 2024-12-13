@@ -6,9 +6,8 @@ import quart
 import spoqify
 from spoqify.app import app
 from spoqify.anonymization import (
-    anonymize_from_track,
+    anonymize_from_seed,
     anonymize_playlist,
-    make_recommendations_playlist,
     Rejected,
 )
 
@@ -31,17 +30,12 @@ def _make_task(url):
         f = anonymize_playlist
         kwargs = {
             'playlist_id': m.group(1),
-            'station': bool(re.search('station[/:]', url)),
         }
-    elif m := re.search(r'track[/:]([A-Za-z0-9]{22})\b', url):
-        f = anonymize_from_track
+    elif m := re.search(r'(artist|album|track)[/:]([A-Za-z0-9]{22})\b', url):
+        f = anonymize_from_seed
         kwargs = {
-            'track_id': m.group(1),
-        }
-    elif m := re.search(r'(artist|album)[/:]([A-Za-z0-9]{22})\b', url):
-        f = make_recommendations_playlist
-        kwargs = {
-            m.group(1) + '_id': m.group(2),
+            'seed_type': m.group(1),
+            'seed_id': m.group(2),
         }
     else:
         f = anonymize_playlist
@@ -51,7 +45,6 @@ def _make_task(url):
             raise ValueError("Invalid playlist ID")
         kwargs = {
             'playlist_id': playlist_id,
-            'station': 'station' in url,
         }
     return asyncio.create_task(limit(f, **kwargs))
 
@@ -157,9 +150,9 @@ async def stream_task_status(url):
 
 
 @app.route('/anonymize/<playlist_id>')
-@app.route('/anonymize/<playlist_id>/station', defaults={'station': True})
-async def anonymize_legacy(playlist_id, station=False):
-    quart.request.args = {'url': playlist_id + ('/station' if station else '')}
+@app.route('/anonymize/<playlist_id>/station')
+async def anonymize_legacy(playlist_id):
+    quart.request.args = {'url': playlist_id}
     return (await anonymize())
 
 

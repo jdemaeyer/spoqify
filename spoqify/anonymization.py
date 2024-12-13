@@ -1,6 +1,5 @@
 import datetime
 import html
-import random
 import re
 
 import aiohttp
@@ -84,26 +83,6 @@ async def load_api_playlist(playlist_id):
     }
 
 
-async def load_recommendations(tracks=None, artists=None):
-    if tracks:
-        seed_name = 'tracks'
-        ids = tracks
-    elif artists:
-        seed_name = 'artists'
-        ids = artists
-    else:
-        raise ValueError("Please supply at least one argument")
-    app.logger.debug(
-        "Loading API recommendations for %s %s", seed_name, tracks)
-    assert all(re.match(r'[a-zA-Z0-9]+$', id_) for id_ in ids)
-    ids_str = ','.join(ids)
-    data = await call_api(
-        f'recommendations?seed_{seed_name}={ids_str}&limit=50',
-        use_client_token=True,
-    )
-    return [track['id'] for track in data['tracks']]
-
-
 async def create_playlist(title, description, tracks):
     app.logger.debug("Creating new playlist '%s'", title)
     data = await call_api(
@@ -124,7 +103,7 @@ async def create_playlist(title, description, tracks):
     return data['external_urls']['spotify']
 
 
-async def anonymize_playlist(playlist_id, station=False):
+async def anonymize_playlist(playlist_id):
     try:
         data = await load_web_playlist(playlist_id)
     except ValueError:
@@ -140,36 +119,22 @@ async def anonymize_playlist(playlist_id, station=False):
     app.logger.debug(
         "Found %d tracks for playlist %s",
         len(data['tracks']), playlist_id)
-    if station:
-        app.logger.debug(
-            "Loading recommendations based on five songs from playlist %s",
-            playlist_id)
-        data['title'] = f"Playlist Radio based on {data['title']}"
-        sample_tracks = random.sample(
-            data['tracks'],
-            min(5, len(data['tracks'])))
-        data['tracks'] = await load_recommendations(tracks=sample_tracks)
     date_str = datetime.date.today().strftime('%d %B %Y').lstrip('0')
     description = (
         f"Anonymized on {date_str} via spoqify.com · Original playlist: "
-        f"{data['url']} · Buy me a Coffee: https://donate.spoqify.com")
+        f"{data['url']} · Donate: https://donate.spoqify.com")
     url = await create_playlist(data['title'], description, data['tracks'])
     return url
 
 
-async def anonymize_from_track(track_id):
-    try:
-        playlist_id = await get_radio_playlist_id(track_id)
-    except Exception:
-        url = await make_recommendations_playlist(track_id=track_id)
-    else:
-        url = await anonymize_playlist(playlist_id)
-    return url
+async def anonymize_from_seed(seed_type, seed_id):
+    playlist_id = await get_radio_playlist_id(seed_type, seed_id)
+    return await anonymize_playlist(playlist_id)
 
 
-async def get_radio_playlist_id(track_id):
+async def get_radio_playlist_id(seed_type, seed_id):
     resp = await app.session.get(
-        f'https://open.spotify.com/track/{track_id}',
+        f'https://open.spotify.com/{seed_type}/{seed_id}',
         headers={'User-Agent': app.config['USER_AGENT']},
         allow_redirects=False,
     )
@@ -178,7 +143,7 @@ async def get_radio_playlist_id(track_id):
         token = re.search(r'"accessToken":"([\w-]+)"', body).group(1)
     resp = await app.session.get(
         f'https://spclient.wg.spotify.com/'
-        f'inspiredby-mix/v2/seed_to_playlist/spotify:track:{track_id}',
+        f'inspiredby-mix/v2/seed_to_playlist/spotify:{seed_type}:{seed_id}',
         params={'response-format': 'json'},
         headers={
             'Authorization': f'Bearer {token}',
@@ -190,37 +155,3 @@ async def get_radio_playlist_id(track_id):
         data = await resp.json()
         playlist_id = data['mediaItems'][0]['uri'].split(':')[-1]
     return playlist_id
-
-
-async def make_recommendations_playlist(
-        track_id=None, artist_id=None, album_id=None):
-    tracks = None
-    artists = None
-    if album_id:
-        assert re.match(r'[a-zA-Z0-9]+$', album_id)
-        data = await call_api(f'albums/{album_id}', use_client_token=True)
-        artist_id = data['artists'][0]['id']
-    if track_id:
-        assert re.match(r'[a-zA-Z0-9]+$', track_id)
-        data = await call_api(f'tracks/{track_id}', use_client_token=True)
-        title = data['name'] + ' Radio'
-        tracks = [track_id]
-    elif artist_id:
-        assert re.match(r'[a-zA-Z0-9]+$', artist_id)
-        data = await call_api(f'artists/{artist_id}', use_client_token=True)
-        title = data['name'] + ' Radio'
-        artists = [artist_id]
-    else:
-        raise ValueError("Please supply at least one argument")
-    tracks = await load_recommendations(tracks=tracks, artists=artists)
-    if not tracks:
-        raise ValueError(
-            f"Spotify's API did not return any recommendations for "
-            f"'{data['name']}'. This can sometimes happen for little-known "
-            "songs or artists. Please try again with a song radio URL.")
-    date_str = datetime.date.today().strftime('%d %B %Y').lstrip('0')
-    description = (
-        f"Anonymized on {date_str} via spoqify.com · Buy me a Coffee: "
-        f"https://donate.spoqify.com/")
-    url = await create_playlist(title, description, tracks)
-    return url
