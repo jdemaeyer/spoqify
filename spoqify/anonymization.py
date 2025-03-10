@@ -134,13 +134,13 @@ async def anonymize_from_seed(seed_type, seed_id):
 
 async def get_radio_playlist_id(seed_type, seed_id):
     resp = await app.session.get(
-        f'https://open.spotify.com/{seed_type}/{seed_id}',
+        f'https://open.spotify.com/get_access_token',
         headers={'User-Agent': app.config['USER_AGENT']},
         allow_redirects=False,
     )
     async with resp:
-        body = await resp.text()
-        token = re.search(r'"accessToken":"([\w-]+)"', body).group(1)
+        data = await resp.json()
+        token = data['accessToken']
     resp = await app.session.get(
         f'https://spclient.wg.spotify.com/'
         f'inspiredby-mix/v2/seed_to_playlist/spotify:{seed_type}:{seed_id}',
