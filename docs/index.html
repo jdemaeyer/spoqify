@@ -114,6 +114,10 @@
       .gh-button:focus {
         text-decoration: none;
       }
+
+      .alert {
+        border: 1px red solid;
+      }
     </style>
     <script>
       document.addEventListener("DOMContentLoaded", function() {
@@ -142,6 +146,15 @@
   </head>
   <body>
     <main class="container">
+      <article class="alert">
+        <h4>Getting errors?</h4>
+        <p>
+          On Friday, March 14th, Spotify released an update that may permanently prevent Spoqify from finding the Song Radio playlist for a given track (or album/artist). This means that Spoqify currently does not work with track, album, or artist URLs.
+        </p>
+        <p>
+          If you want to un-personalize a Song Radio, <strong>you will need to directly supply a Song Radio playlist URL to Spoqify.</strong>
+        </p>
+      </article>
       <section id="title">
         <div class="flex-grid">
           <div style="flex-grow: 1">
