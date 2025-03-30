@@ -27,6 +27,7 @@ setup(
     ],
     install_requires=[
         'aiohttp',
+        'pyotp',
         'quart',
         'quart-cors',
     ],

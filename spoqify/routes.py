@@ -32,11 +32,6 @@ def _make_task(url):
             'playlist_id': m.group(1),
         }
     elif m := re.search(r'(artist|album|track)[/:]([A-Za-z0-9]{22})\b', url):
-        # XXX
-        raise ValueError(
-            "Please directly supply a Song/Artist Radio URL (this is a "
-            "hopefully temporary restriction after an update made by Spotify)",
-        )
         f = anonymize_from_seed
         kwargs = {
             'seed_type': m.group(1),

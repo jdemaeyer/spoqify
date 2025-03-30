@@ -61,6 +61,8 @@ propcache==0.2.1
     # via
     #   aiohttp
     #   yarl
+pyotp==2.9.0
+    # via spoqify (setup.py)
 quart==0.19.9
     # via
     #   spoqify (setup.py)

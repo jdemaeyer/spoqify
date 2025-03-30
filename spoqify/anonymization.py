@@ -1,8 +1,13 @@
+import base64
 import datetime
+import hashlib
 import html
 import re
+import time
 
 import aiohttp
+import pyotp
+
 from spoqify.app import app
 from spoqify.spotify import call_api
 
@@ -132,10 +137,42 @@ async def anonymize_from_seed(seed_type, seed_id):
     return await anonymize_playlist(playlist_id)
 
 
+def _generate_totp(timestamp):
+    # via https://github.com/kunesj/holo-spotify-stats/blob/ebdcbbb22904946ec518cbf6cac74fec94a01f64/fetch_spotify_stats.py#L129
+    uint8_secret = bytearray([
+        53, 53, 48, 55, 49, 52, 53, 56, 53, 51, 52, 56, 55, 52, 57, 57, 53, 57,
+        50, 50, 52, 56, 54, 51, 48, 51, 50, 57, 51, 52, 55,
+    ])
+    secret = base64.b32encode(bytes(uint8_secret)).decode("ascii")
+    period = 30
+    return pyotp.hotp.HOTP(
+        s=secret,
+        digits=6,
+        digest=hashlib.sha1,
+    ).at(
+        int(timestamp / period),
+    )
+
+
 async def get_radio_playlist_id(seed_type, seed_id):
+    client_time = int(time.time() * 1000)
+    server_time = client_time // 1000
+    totp = _generate_totp(client_time / 1000)
     resp = await app.session.get(
-        f'https://open.spotify.com/get_access_token',
-        headers={'User-Agent': app.config['USER_AGENT']},
+        'https://open.spotify.com/get_access_token',
+        headers={
+            'Accept': 'application/json',
+            'User-Agent': app.config['USER_AGENT'],
+        },
+        params={
+            'reason': 'init',
+            'productType': 'web-player',
+            'totp': totp,
+            'totpServer': totp,
+            'totpVer': 5,
+            'sTime': server_time,
+            'cTime': client_time,
+        },
         allow_redirects=False,
     )
     async with resp:
