@@ -159,7 +159,7 @@ async def get_radio_playlist_id(seed_type, seed_id):
     server_time = client_time // 1000
     totp = _generate_totp(client_time / 1000)
     resp = await app.session.get(
-        'https://open.spotify.com/get_access_token',
+        'https://open.spotify.com/api/token',
         headers={
             'Accept': 'application/json',
             'User-Agent': app.config['USER_AGENT'],
