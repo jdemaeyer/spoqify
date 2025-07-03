@@ -137,27 +137,28 @@ async def anonymize_from_seed(seed_type, seed_id):
     return await anonymize_playlist(playlist_id)
 
 
-def _generate_totp(timestamp):
-    # via https://github.com/kunesj/holo-spotify-stats/blob/ebdcbbb22904946ec518cbf6cac74fec94a01f64/fetch_spotify_stats.py#L129
-    uint8_secret = bytearray([
-        53, 53, 48, 55, 49, 52, 53, 56, 53, 51, 52, 56, 55, 52, 57, 57, 53, 57,
-        50, 50, 52, 56, 54, 51, 48, 51, 50, 57, 51, 52, 55,
-    ])
-    secret = base64.b32encode(bytes(uint8_secret)).decode("ascii")
-    period = 30
+totp_cypher = [
+    59, 91, 66, 74, 30, 66, 74, 38, 46, 50, 72, 61, 44, 71, 86, 39, 89,
+]
+totp_bytes = [e ^ ((t % 33) + 9) for t, e in enumerate(totp_cypher)]
+totp_secret = base64.b32encode(
+    b''.join(bytes(str(x), 'ascii') for x in totp_bytes),
+)
+totp_version = 9
+
+
+def _generate_totp():
     return pyotp.hotp.HOTP(
-        s=secret,
+        s=totp_secret,
         digits=6,
         digest=hashlib.sha1,
     ).at(
-        int(timestamp / period),
+        int(time.time() / 30),
     )
 
 
 async def get_radio_playlist_id(seed_type, seed_id):
-    client_time = int(time.time() * 1000)
-    server_time = client_time // 1000
-    totp = _generate_totp(client_time / 1000)
+    totp = _generate_totp()
     resp = await app.session.get(
         'https://open.spotify.com/api/token',
         headers={
@@ -169,9 +170,7 @@ async def get_radio_playlist_id(seed_type, seed_id):
             'productType': 'web-player',
             'totp': totp,
             'totpServer': totp,
-            'totpVer': 5,
-            'sTime': server_time,
-            'cTime': client_time,
+            'totpVer': totp_version,
         },
         allow_redirects=False,
     )
