@@ -137,14 +137,13 @@ async def anonymize_from_seed(seed_type, seed_id):
     return await anonymize_playlist(playlist_id)
 
 
-totp_cypher = [
-    59, 91, 66, 74, 30, 66, 74, 38, 46, 50, 72, 61, 44, 71, 86, 39, 89,
-]
-totp_bytes = [e ^ ((t % 33) + 9) for t, e in enumerate(totp_cypher)]
-totp_secret = base64.b32encode(
-    b''.join(bytes(str(x), 'ascii') for x in totp_bytes),
-)
-totp_version = 9
+uint8_secret = bytearray([
+    53, 50, 49, 48, 48, 52, 57, 49, 49, 48, 52, 54, 54, 53, 49, 50, 50, 56, 53,
+    49, 49, 57, 57, 48, 55, 57, 49, 49, 52, 56, 48, 55, 53, 54, 50, 49, 50, 53,
+    53, 49, 56, 49,
+])
+totp_secret = base64.b32encode(bytes(uint8_secret)).decode("ascii")
+totp_version = 10
 
 
 def _generate_totp():
