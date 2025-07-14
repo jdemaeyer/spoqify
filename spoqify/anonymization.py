@@ -1,7 +1,7 @@
-import base64
 import datetime
 import hashlib
 import html
+import os
 import re
 import time
 
@@ -137,13 +137,8 @@ async def anonymize_from_seed(seed_type, seed_id):
     return await anonymize_playlist(playlist_id)
 
 
-uint8_secret = bytearray([
-    53, 48, 56, 54, 55, 53, 55, 52, 49, 49, 48, 54, 52, 49, 50, 50, 57, 49, 49,
-    49, 52, 49, 49, 55, 49, 48, 51, 56, 55, 49, 49, 52, 51, 55, 54, 52, 51, 57,
-    54, 56, 51, 51, 57, 51, 52, 57, 54, 49,
-])
-totp_secret = base64.b32encode(bytes(uint8_secret)).decode("ascii")
-totp_version = 13
+totp_secret = os.getenv('SPOTIFY_TOTP_SECRET')
+totp_version = os.getenv('SPOTIFY_TOTP_VERSION')
 
 
 def _generate_totp():
