@@ -157,3 +157,23 @@ async def call_api_now(
     async with resp:
         if (await resp.text()):
             return (await resp.json())
+
+
+async def create_playlist(title, description, tracks):
+    app.logger.debug("Creating new playlist '%s'", title)
+    data = await call_api(
+        f"users/{app.config['SPOTIFY_USER_ID']}/playlists",
+        data={
+            'name': title,
+            'description': description,
+        },
+    )
+    playlist_id = data['id']
+    app.logger.debug(
+        "Adding %d tracks to playlist '%s' (%s)",
+        len(tracks), title, playlist_id)
+    await call_api(
+        f'playlists/{playlist_id}/tracks',
+        data={'uris': [f'spotify:track:{track_id}' for track_id in tracks]},
+    )
+    return data['external_urls']['spotify']

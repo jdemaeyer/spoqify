@@ -1,6 +1,7 @@
+import base64
 import datetime
 import hashlib
-import html
+import json
 import os
 import re
 import time
@@ -9,118 +10,17 @@ import aiohttp
 import pyotp
 
 from spoqify.app import app
-from spoqify.spotify import call_api
+from spoqify.spotify import create_playlist
 
 
 class Rejected(Exception):
     pass
 
 
-async def load_web_playlist(playlist_id):
-    app.logger.debug("Loading web tracks for playlist %s", playlist_id)
-    resp = await app.session.get(
-        f'https://open.spotify.com/playlist/{playlist_id}',
-        headers={'User-Agent': app.config['USER_AGENT']},
-        allow_redirects=False,
-        raise_for_status=False,
-    )
-    async with resp:
-        if resp.status == 404:
-            raise Rejected("Unable to find playlist. It's probably private?")
-        elif resp.status != 200:
-            raise Rejected(
-                "Spotify gave us an error while we tried to load the playlist."
-            )
-        try:
-            return parse_web_playlist(await resp.text())
-        except AttributeError:
-            raise ValueError("Unable to find playlist. It's probably private?")
-
-
-def parse_web_playlist(body):
-    url = re.search(
-        '<meta property="og:url" content="(.*?)" ?/>', body).group(1)
-    title = html.unescape(re.search(
-        '<meta property="og:title" content="(.*?)" ?/>', body).group(1))
-    description = html.unescape(re.search(
-        '<meta name="description" content="(.*?)" ?/>', body).group(1))
-    creator = html.unescape(
-        re.search(
-            '<meta name="music:creator" content="(.*?)" ?/>',
-            body,
-        ).group(1)
-    ).split('/')[-1]
-    if creator != 'spotify':
-        raise Rejected(
-            "Spoqify only works on auto-generated playlists like Song Radio. "
-            "Please try again with a song radio URL!"
-        )
-    tracks = re.findall(
-        '<meta name="music:song" '
-        'content="https://open.spotify.com/track/(.*?)" ?/>',
-        body,
-    )
-    if not tracks:
-        raise ValueError("Unable to find tracks")
-    return {
-        'url': url,
-        'title': title,
-        'description': description,
-        'tracks': tracks,
-    }
-
-
-async def load_api_playlist(playlist_id):
-    app.logger.debug("Loading API tracks for playlist %s", playlist_id)
-    try:
-        data = await call_api(
-            f'playlists/{playlist_id}', use_client_token=True)
-    except aiohttp.ClientResponseError as e:
-        if e.status == 404:
-            raise Rejected("Unable to find playlist. It's probably private?")
-        app.logger.error("Unexpected API error for playlist %s", playlist_id)
-        raise ValueError("Unexpected error")
-    return {
-        'url': data['external_urls']['spotify'],
-        'title': data['name'],
-        'description': data['description'],
-        'tracks': [t['track']['id'] for t in data['tracks']['items']],
-    }
-
-
-async def create_playlist(title, description, tracks):
-    app.logger.debug("Creating new playlist '%s'", title)
-    data = await call_api(
-        f"users/{app.config['SPOTIFY_USER_ID']}/playlists",
-        data={
-            'name': title,
-            'description': description,
-        },
-    )
-    playlist_id = data['id']
-    app.logger.debug(
-        "Adding %d tracks to playlist '%s' (%s)",
-        len(tracks), title, playlist_id)
-    await call_api(
-        f'playlists/{playlist_id}/tracks',
-        data={'uris': [f'spotify:track:{track_id}' for track_id in tracks]},
-    )
-    return data['external_urls']['spotify']
-
-
-async def anonymize_playlist(playlist_id):
-    try:
-        data = await load_web_playlist(playlist_id)
-    except ValueError:
-        app.logger.warning(
-            "Falling back to Spotify API for playlist %s", playlist_id)
-        # XXX: This is not the same as what we see in a Private Browser
-        #      session. Possibly it's personalized to the user that created the
-        #      Spotify app? We will assume here that the user still prefers
-        #      this over their own personalization.
-        data = await load_api_playlist(playlist_id)
-    if not data['tracks']:
-        raise Rejected("Unable to retrieve tracks. Probably a daylist?")
+async def anonymize_playlist(playlist_id, client_id=None, token=None):
+    if client_id is None:
+        client_id, token = await get_token()
+    data = await load_playlist(playlist_id, client_id, token)
     app.logger.debug(
         "Found %d tracks for playlist %s",
         len(data['tracks']), playlist_id)
@@ -133,8 +33,9 @@ async def anonymize_playlist(playlist_id):
 
 
 async def anonymize_from_seed(seed_type, seed_id):
-    playlist_id = await get_radio_playlist_id(seed_type, seed_id)
-    return await anonymize_playlist(playlist_id)
+    client_id, token = await get_token()
+    playlist_id = await get_radio_playlist_id(seed_type, seed_id, token)
+    return await anonymize_playlist(playlist_id, client_id, token)
 
 
 totp_secret = os.getenv('SPOTIFY_TOTP_SECRET')
@@ -151,7 +52,7 @@ def _generate_totp():
     )
 
 
-async def get_radio_playlist_id(seed_type, seed_id):
+async def get_token():
     totp = _generate_totp()
     resp = await app.session.get(
         'https://open.spotify.com/api/token',
@@ -170,7 +71,89 @@ async def get_radio_playlist_id(seed_type, seed_id):
     )
     async with resp:
         data = await resp.json()
+        client_id = data['clientId']
         token = data['accessToken']
+    return client_id, token
+
+
+async def get_client_token(client_id, token):
+    url = 'https://open.spotify.com/'
+    resp = await app.session.get(url)
+    text = await resp.text()
+    config_regex = r'id="appServerConfig"[^>]+>([\w=]+)</script>'
+    config_raw = base64.b64decode(re.search(config_regex, text).group(1))
+    config = json.loads(config_raw.decode())
+    device_id = config['correlationId']
+    resp = await app.session.post(
+        'https://clienttoken.spotify.com/v1/clienttoken',
+        headers={
+            'accept': 'application/json',
+        },
+        json={
+            'client_data': {
+                'client_id': client_id,
+                'client_version': '1.2.72.110.g3c42800a',
+                'js_sdk_data': {
+                    'device_brand': 'unknown',
+                    'device_id': device_id,
+                    'device_model': 'unknown',
+                    'device_type': 'computer',
+                    'os': 'linux',
+                    'os_version': 'unknown',
+                },
+            },
+        },
+    )
+    data = await resp.json()
+    return data['granted_token']['token']
+
+
+async def load_playlist(playlist_id, client_id, token):
+    app.logger.debug("Loading tracks for playlist %s", playlist_id)
+    client_token = await get_client_token(client_id, token)
+    try:
+        resp = await app.session.post(
+            'https://api-partner.spotify.com/pathfinder/v2/query',
+            headers={
+                'authorization': f'Bearer {token}',
+                'client-token': client_token,
+                'User-Agent': app.config['USER_AGENT'],
+            },
+            json={
+                'variables': {
+                    'uri': f'spotify:playlist:{playlist_id}',
+                    'offset': 0,
+                    'limit': 25,
+                    'enableWatchFeedEntrypoint': False,
+                },
+                'operationName':'fetchPlaylist',
+                'extensions': {
+                    'persistedQuery': {
+                        'version':1,
+                        'sha256Hash':'837211ef46f604a73cd3d051f12ee63c81aca4ec6eb18e227b0629a7b36adad3',  # noqa
+                    },
+                },
+            }
+        )
+        resp.raise_for_status()
+    except aiohttp.ClientResponseError as e:
+        if e.status == 404:
+            raise Rejected("Unable to find playlist. It's probably private?")
+        app.logger.error("Unexpected API error for playlist %s", playlist_id)
+        raise ValueError("Unexpected error")
+    else:
+        data = await resp.json()
+    playlist = data['data']['playlistV2']
+    tracks = playlist['content']['items']
+    return {
+        'url': playlist['sharingInfo']['shareUrl'].split('?')[0],
+        'title': playlist['name'],
+        'description': playlist['description'],
+        'tracks': [t['itemV2']['data']['uri'].split(':')[-1] for t in tracks],
+    }
+
+
+async def get_radio_playlist_id(seed_type, seed_id, token):
     resp = await app.session.get(
         f'https://spclient.wg.spotify.com/'
         f'inspiredby-mix/v2/seed_to_playlist/spotify:{seed_type}:{seed_id}',
