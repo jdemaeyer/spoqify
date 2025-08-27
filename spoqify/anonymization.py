@@ -146,6 +146,8 @@ async def load_playlist(playlist_id, client_id, token):
     else:
         data = await resp.json()
     playlist = data['data']['playlistV2']
+    if playlist['__typename'] == 'NotFound':
+        raise Rejected("Unable to find playlist. It's probably private?")
     tracks = playlist['content']['items']
     return {
         'url': playlist['sharingInfo']['shareUrl'].split('?')[0],
