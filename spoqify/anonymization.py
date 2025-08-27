@@ -148,6 +148,11 @@ async def load_playlist(playlist_id, client_id, token):
     playlist = data['data']['playlistV2']
     if playlist['__typename'] == 'NotFound':
         raise Rejected("Unable to find playlist. It's probably private?")
+    if playlist['ownerV2']['data']['username'] != 'spotify':
+        raise Rejected(
+            "Spoqify only works on auto-generated playlists like Song Radio. "
+            "Please try again with a song radio URL!"
+        )
     tracks = playlist['content']['items']
     return {
         'url': playlist['sharingInfo']['shareUrl'].split('?')[0],
