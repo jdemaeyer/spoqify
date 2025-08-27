@@ -24,6 +24,8 @@ async def anonymize_playlist(playlist_id, client_id=None, token=None):
     app.logger.debug(
         "Found %d tracks for playlist %s",
         len(data['tracks']), playlist_id)
+    if not data['tracks']:
+        raise Rejected("Unable to retrieve tracks. Probably a daylist?")
     date_str = datetime.date.today().strftime('%d %B %Y').lstrip('0')
     description = (
         f"Anonymized on {date_str} via spoqify.com · Original playlist: "
