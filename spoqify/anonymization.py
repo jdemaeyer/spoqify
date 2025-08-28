@@ -125,7 +125,7 @@ async def load_playlist(playlist_id, client_id, token):
                 'variables': {
                     'uri': f'spotify:playlist:{playlist_id}',
                     'offset': 0,
-                    'limit': 25,
+                    'limit': 50,
                     'enableWatchFeedEntrypoint': False,
                 },
                 'operationName':'fetchPlaylist',
