@@ -158,7 +158,11 @@ async def load_playlist(playlist_id, client_id, token):
         'url': playlist['sharingInfo']['shareUrl'].split('?')[0],
         'title': playlist['name'],
         'description': playlist['description'],
-        'tracks': [t['itemV2']['data']['uri'].split(':')[-1] for t in tracks],
+        'tracks': [
+            t['itemV2']['data']['uri'].split(':')[-1]
+            for t in tracks
+            if t['itemV2']['data']['__typename'] != 'NotFound'
+        ],
     }
 
 
