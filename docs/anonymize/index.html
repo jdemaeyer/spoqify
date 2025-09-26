@@ -61,7 +61,10 @@
           });
           sse.addEventListener("done", function(e) {
             sse.close();
-            window.location.replace(e.data);
+            // Allow Spotify's database to sync
+            window.setTimeout(() => {
+              window.location.replace(e.data);
+            }, 3000);
           });
           sse.addEventListener("error", function(e) {
             sse.close();

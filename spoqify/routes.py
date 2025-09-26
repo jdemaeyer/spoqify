@@ -85,6 +85,8 @@ async def redirect():
             app.rejected_urls[url] = e
         return quart.abort(400, str(e))
     else:
+        # Allow Spotify's database to sync
+        await asyncio.sleep(3)
         return quart.redirect(result_url)
 
 
