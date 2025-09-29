@@ -148,6 +148,14 @@ async def load_playlist(playlist_id, client_id, token):
     playlist = data['data']['playlistV2']
     if playlist['__typename'] == 'NotFound':
         raise Rejected("Unable to find playlist. It's probably private?")
+    if playlist['__typename'] != 'Playlist':
+        if msg := playlist.get('message'):
+            raise ValueError(f"Got error '{type}' from Spotify: {msg}")
+        else:
+            raise ValueError(
+                "Got error '{type}' from Spotify. Retrying may or may not "
+                "work.",
+            )
     if playlist['ownerV2']['data']['username'] != 'spotify':
         raise Rejected(
             "Spoqify only works on auto-generated playlists like Song Radio. "
