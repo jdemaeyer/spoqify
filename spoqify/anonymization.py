@@ -40,13 +40,19 @@ async def anonymize_from_seed(seed_type, seed_id):
     return await anonymize_playlist(playlist_id, client_id, token)
 
 
-totp_secret = os.getenv('SPOTIFY_TOTP_SECRET')
-totp_version = os.getenv('SPOTIFY_TOTP_VERSION')
+totp_secret_cache = {}
 
 
-def _generate_totp():
+async def _update_totp_secret():
+    app.logger.debug("Updating TOTP secret")
+    resp = await app.session.get(os.getenv('TOTP_SECRET_SERVICE_URL'))
+    data = await resp.json()
+    totp_secret_cache.update(data)
+
+
+def _generate_totp(secret):
     return pyotp.hotp.HOTP(
-        s=totp_secret,
+        s=secret,
         digits=6,
         digest=hashlib.sha1,
     ).at(
@@ -55,7 +61,10 @@ def _generate_totp():
 
 
 async def get_token():
-    totp = _generate_totp()
+    age = time.time() - totp_secret_cache.get('timestamp', 0)
+    if age > 43200:
+        await _update_totp_secret()
+    totp = _generate_totp(totp_secret_cache['secret_base32'])
     resp = await app.session.get(
         'https://open.spotify.com/api/token',
         headers={
@@ -67,7 +76,7 @@ async def get_token():
             'productType': 'web-player',
             'totp': totp,
             'totpServer': totp,
-            'totpVer': totp_version,
+            'totpVer': totp_secret_cache['version'],
         },
         allow_redirects=False,
     )
