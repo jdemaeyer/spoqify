@@ -33,7 +33,6 @@ app.config['QUART_CORS_ALLOW_ORIGIN'] = [
 app.config['QUART_CORS_EXPOSE_HEADERS'] = ['*']
 app.config['SPOTIFY_CLIENT_ID'] = os.getenv('SPOTIFY_CLIENT_ID')
 app.config['SPOTIFY_CLIENT_SECRET'] = os.getenv('SPOTIFY_CLIENT_SECRET')
-app.config['SPOTIFY_USER_ID'] = os.getenv('SPOTIFY_USER_ID')
 
 
 @app.before_serving

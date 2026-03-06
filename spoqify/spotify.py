@@ -43,7 +43,7 @@ async def get_token():
             data = {
                 'grant_type': 'authorization_code',
                 'code': cache.pop('code'),
-                'redirect_uri': 'http://localhost:8808/',
+                'redirect_uri': 'http://127.0.0.1:8808/',
             }
         elif 'refresh_token' in cache:
             app.logger.debug("Authenticating user with refresh token")
@@ -94,7 +94,13 @@ async def get_client_token():
     return cache['client_token']
 
 
-async def call_api(endpoint, data=None, use_client_token=False, method=None):
+async def call_api(
+    endpoint,
+    data=None,
+    use_client_token=False,
+    method=None,
+    **kwargs,
+):
     retry = 0
     while True:
         await api_calls_allowed.wait()
@@ -104,6 +110,7 @@ async def call_api(endpoint, data=None, use_client_token=False, method=None):
                 data=data,
                 use_client_token=use_client_token,
                 method=method,
+                **kwargs,
             )
             return resp
         except aiohttp.ClientResponseError as e:
@@ -136,7 +143,12 @@ async def call_api(endpoint, data=None, use_client_token=False, method=None):
 
 
 async def call_api_now(
-        endpoint, data=None, use_client_token=False, method=None):
+    endpoint,
+    data=None,
+    use_client_token=False,
+    method=None,
+    **kwargs,
+):
     if use_client_token:
         token = await get_client_token()
     else:
@@ -153,6 +165,7 @@ async def call_api_now(
         url=f'https://api.spotify.com/v1/{endpoint}',
         json=data,
         headers={'Authorization': f'Bearer {token}'},
+        **kwargs,
     )
     async with resp:
         if (await resp.text()):
@@ -162,7 +175,7 @@ async def call_api_now(
 async def create_playlist(title, description, tracks):
     app.logger.debug("Creating new playlist '%s'", title)
     data = await call_api(
-        f"users/{app.config['SPOTIFY_USER_ID']}/playlists",
+        'me/playlists',
         data={
             'name': title,
             'description': description,
@@ -173,7 +186,7 @@ async def create_playlist(title, description, tracks):
         "Adding %d tracks to playlist '%s' (%s)",
         len(tracks), title, playlist_id)
     await call_api(
-        f'playlists/{playlist_id}/tracks',
+        f'playlists/{playlist_id}/items',
         data={'uris': [f'spotify:track:{track_id}' for track_id in tracks]},
     )
     return data['external_urls']['spotify']

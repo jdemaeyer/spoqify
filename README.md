@@ -26,9 +26,9 @@ To run Spoqify locally, follow these steps:
    `python -m virtualenv .venv && source .venv/bin/activate`
 2. Install Spoqify's requirements:
    `pip install -r requirements.txt`
-3. Copy `.env-example` to `.env` and replace the variable values with your app
-   and user credentials (you can see the Spotify Client ID and Secret at your
-   app dashboard, and your Spotify User ID in the URL of your Spotify profile)
+3. Copy `.env-example` to `.env` and replace the variable values with your
+   Spotify app credentials (you can see the Spotify Client ID and Secret at
+   your app dashboard)
 4. Run `QUART_APP=spoqify.app:app python -m quart init` and follow the
    instructions to authenticate your Spoqify instance against Spotify (this
    should only be necessary once)
