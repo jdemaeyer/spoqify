@@ -129,6 +129,7 @@ async def load_playlist(playlist_id, client_id, token):
                 'authorization': f'Bearer {token}',
                 'client-token': client_token,
                 'User-Agent': app.config['USER_AGENT'],
+                'Accept-Encoding': 'gzip, deflate, br',
             },
             json={
                 'variables': {
