@@ -4,17 +4,17 @@ aiofiles==25.1.0
     # via quart
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.13.3
+aiohttp==3.13.5
     # via spoqify (setup.py)
 aiosignal==1.4.0
     # via aiohttp
-attrs==25.4.0
+attrs==26.1.0
     # via aiohttp
 blinker==1.9.0
     # via
     #   flask
     #   quart
-click==8.3.1
+click==8.3.3
     # via
     #   flask
     #   quart
@@ -36,7 +36,7 @@ hypercorn==0.18.0
     # via quart
 hyperframe==6.1.0
     # via h2
-idna==3.11
+idna==3.13
     # via yarl
 itsdangerous==2.2.0
     # via
@@ -70,7 +70,7 @@ quart==0.20.0
     #   quart-cors
 quart-cors==0.8.0
     # via spoqify (setup.py)
-werkzeug==3.1.6
+werkzeug==3.1.8
     # via
     #   flask
     #   quart
