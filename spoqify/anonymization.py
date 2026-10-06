@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import datetime
 import hashlib
@@ -122,49 +123,67 @@ async def get_client_token(client_id, token):
 async def load_playlist(playlist_id, client_id, token):
     app.logger.debug("Loading tracks for playlist %s", playlist_id)
     client_token = await get_client_token(client_id, token)
-    try:
-        resp = await app.session.post(
-            'https://api-partner.spotify.com/pathfinder/v2/query',
-            headers={
-                'authorization': f'Bearer {token}',
-                'client-token': client_token,
-                'User-Agent': app.config['USER_AGENT'],
-                'Accept-Encoding': 'gzip, deflate, br',
-            },
-            json={
-                'variables': {
-                    'uri': f'spotify:playlist:{playlist_id}',
-                    'offset': 0,
-                    'limit': 50,
-                    'enableWatchFeedEntrypoint': False,
+    retry = 0
+    while True:
+        try:
+            resp = await app.session.post(
+                'https://api-partner.spotify.com/pathfinder/v2/query',
+                headers={
+                    'authorization': f'Bearer {token}',
+                    'client-token': client_token,
+                    'User-Agent': app.config['USER_AGENT'],
+                    'Accept-Encoding': 'gzip, deflate, br',
                 },
-                'operationName':'fetchPlaylist',
-                'extensions': {
-                    'persistedQuery': {
-                        'version':1,
-                        'sha256Hash':'837211ef46f604a73cd3d051f12ee63c81aca4ec6eb18e227b0629a7b36adad3',  # noqa
+                json={
+                    'variables': {
+                        'uri': f'spotify:playlist:{playlist_id}',
+                        'offset': 0,
+                        'limit': 50,
+                        'enableWatchFeedEntrypoint': False,
                     },
-                },
-            }
-        )
-        resp.raise_for_status()
-    except aiohttp.ClientResponseError as e:
-        if e.status == 404:
-            raise Rejected("Unable to find playlist. It's probably private?")
-        app.logger.error("Unexpected API error for playlist %s", playlist_id)
-        raise ValueError("Unexpected error")
-    else:
-        data = await resp.json()
+                    'operationName':'fetchPlaylist',
+                    'extensions': {
+                        'persistedQuery': {
+                            'version':1,
+                            'sha256Hash':'837211ef46f604a73cd3d051f12ee63c81aca4ec6eb18e227b0629a7b36adad3',  # noqa
+                        },
+                    },
+                }
+            )
+            resp.raise_for_status()
+        except aiohttp.ClientResponseError as e:
+            if e.status == 404:
+                raise Rejected(
+                    "Unable to find playlist. It's probably private?"
+                )
+            if e.status >= 500 and retry < 3:
+                delay = .6 * 2 ** retry
+                app.logger.warning(
+                    "Got HTTP %d, will retry in %s seconds",
+                    e.status,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+                retry += 1
+                continue
+            app.logger.error(
+                "Unexpected API error for playlist %s",
+                playlist_id,
+            )
+            raise ValueError("Unexpected error")
+        break
+    data = await resp.json()
     playlist = data['data']['playlistV2']
     if playlist['__typename'] == 'NotFound':
         raise Rejected("Unable to find playlist. It's probably private?")
     if playlist['__typename'] != 'Playlist':
+        typename = playlist['__typename']
         if msg := playlist.get('message'):
-            raise ValueError(f"Got error '{type}' from Spotify: {msg}")
+            raise ValueError(f"Got error '{typename}' from Spotify: {msg}")
         else:
             raise ValueError(
-                "Got error '{type}' from Spotify. Retrying may or may not "
-                "work.",
+                f"Got error '{typename}' from Spotify. Retrying may or "
+                "may not work.",
             )
     if playlist['ownerV2']['data']['username'] != 'spotify':
         raise Rejected(
